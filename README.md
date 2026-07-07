@@ -111,7 +111,7 @@ muon-lifetime-analysis
 Clone the repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/muon-lifetime-analysis.git
+git clone https://github.com/naris93-phcs/muon-lifetime-analysis.git
 ```
 
 Install the required packages
