@@ -128,7 +128,7 @@ No detector acceptance correction, efficiency correction, background subtraction
 
 ## Lifetime Histogram
 
-![Muon lifetime histogram](results/publication_lifetime_hist.png)
+![Muon lifetime histogram](docs/publication_lifetime_hist.png)
 
 ---
 
