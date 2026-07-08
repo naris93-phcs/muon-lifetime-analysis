@@ -1,104 +1,90 @@
-<<<<<<< HEAD
-# Cosmic Muon Lifetime Analysis from Scintillation Detector Data
+# Cosmic Muon Lifetime Analysis
 
-Python analysis pipeline for estimating the lifetime of atmospheric cosmic-ray muons using real oscilloscope waveform data recorded with a scintillation detector.
-
----
-
-# Overview
-
-Cosmic-ray muons are continuously produced in the Earth's atmosphere through interactions of high-energy cosmic rays with atmospheric nuclei.
-
-Some of these muons stop inside a scintillation detector before decaying via the weak interaction
-
-μ⁻ → e⁻ + ν̄ₑ + νμ
-
-This project analyzes real oscilloscope waveforms, identifies candidate decay events, measures the delay between the stopping muon and the decay electron, and estimates the mean muon lifetime.
+Python analysis pipeline for reconstructing the lifetime of atmospheric cosmic-ray muons from real scintillation detector waveform data.
 
 ---
 
-# Physics Background
+## Overview
 
-The probability of muon decay follows an exponential distribution
+Cosmic-ray muons are continuously produced in the Earth's atmosphere through interactions of high-energy cosmic rays with atmospheric nuclei. A fraction of these muons lose enough kinetic energy to stop inside a scintillation detector before decaying into an electron or positron and neutrinos.
 
-N(t) = N₀ exp(-t/τ)
+This project reconstructs the time delay between the stopping muon and its subsequent decay using real oscilloscope waveforms recorded in a laboratory setup.
 
-where
-
-- **N(t)** is the number of surviving muons
-- **τ** is the mean muon lifetime
-
-Accepted value:
-
-**τ = 2.197 μs**
-
-The objective of this project is to reproduce this value from experimental data.
+The goal of this repository is not only to estimate the muon lifetime, but also to demonstrate a realistic detector-analysis workflow, including waveform loading, trigger reconstruction, delayed pulse detection, diagnostics and result reporting.
 
 ---
 
-# Example Event
+## Features
 
-The figure below shows a representative oscilloscope waveform.
-
-The large pulse corresponds to the stopping muon, while the smaller delayed pulse corresponds to the decay electron candidate.
-
-![Example Event](assets/example_event.png)
-
----
-
-# Lifetime Distribution
-
-The extracted decay times are collected into a lifetime histogram.
-
-![Lifetime Histogram](assets/lifetime_hist.png)
-
-Current analysis results
-
-| Quantity | Value |
-|-----------|--------|
-| Events analyzed | 180 |
-| Mean lifetime | **2.235 μs** |
-| Standard deviation | **0.939 μs** |
-
-The measured lifetime is in reasonable agreement with the accepted value considering the simplicity of the current event-selection algorithm.
+- Automatic oscilloscope CSV parsing
+- Trigger reconstruction from coincidence channel
+- Dual-polarity pulse detection
+- Peak-prominence based event selection
+- Early-time veto for prompt electronic features
+- Muon lifetime reconstruction
+- Lifetime histogram generation
+- Detector diagnostic tools
+- Pulse statistics
+- Analysis summary report
 
 ---
 
-# Analysis Pipeline
+## Experimental Setup
 
-The analysis performs the following steps
+The experimental setup consists of two plastic scintillation detectors coupled to photomultiplier tubes.
 
-1. Load oscilloscope CSV files
-2. Extract waveform channels
-3. Detect the coincidence trigger
-4. Search for a delayed decay pulse
-5. Compute the time interval between both signals
-6. Build the lifetime distribution
-7. Estimate the mean muon lifetime
+The recorded oscilloscope channels are:
+
+| Channel | Description |
+|---|---|
+| CH1 | Analog scintillator waveform |
+| CH2 | Coincidence trigger signal |
+
+The coincidence signal defines the trigger time of the event. A delayed pulse in CH1 is then searched for and interpreted as a decay-electron candidate.
+
+The dataset consists of real oscilloscope waveforms acquired during a cosmic muon lifetime measurement.
 
 ---
 
-# Repository Structure
+## Detector Algorithm
+
+The reconstruction algorithm proceeds as follows:
+
+1. Load waveform data from CSV files.
+2. Determine the trigger time from CH2.
+3. Apply an early-time veto to suppress prompt features.
+4. Search CH1 for delayed pulse candidates.
+5. Detect both positive and negative pulse candidates.
+6. Rank candidates using peak prominence.
+7. Select the most prominent delayed candidate.
+8. Compute the reconstructed lifetime.
+
+The current detector is a prominence-based, dual-polarity detector with an early-time veto.
+
+---
+
+## Project Structure
 
 ```text
-muon-lifetime-analysis
-│
-├── assets/
-│   ├── example_event.png
-│   └── lifetime_hist.png
-│
+muon-lifetime-analysis/
+
 ├── data/
 │   └── raw/
 │
-├── results/
-│
 ├── src/
-│   ├── analysis.py
-│   ├── detector.py
 │   ├── io.py
+│   ├── detector.py
 │   ├── lifetime.py
-│   ├── plotting.py
-│   └── preprocessing.py
+│   └── analysis.py
+│
+├── diagnostics/
+│   ├── plot_detector_diagnostics.py
+│   ├── pulse_statistics.py
+│   ├── summary_report.py
+│   ├── mle_lifetime.py
+│   └── publication_histogram.py
+│
+├── results/
 │
 ├── main.py
 ├── requirements.txt
@@ -107,15 +93,97 @@ muon-lifetime-analysis
 
 ---
 
-# Installation
+## Current Detector Configuration
 
-Clone the repository
+| Parameter | Value |
+|---|---:|
+| Trigger channel | CH2 |
+| Decay search channel | CH1 |
+| Early-time veto | 0.8 μs |
+| Pulse search | Dual polarity |
+| Selection metric | Peak prominence |
+| Maximum accepted lifetime | 10 μs |
 
-```bash
-git clone https://github.com/naris93-phcs/muon-lifetime-analysis.git
-```
+---
 
-Install the required packages
+## Results
+
+Current reconstruction result:
+
+| Quantity | Value |
+|---|---:|
+| Input waveforms | 180 |
+| Reconstructed events | 179 |
+| Detection efficiency | 99.4 % |
+| Mean reconstructed lifetime | 2.099 μs |
+| Standard deviation | 0.765 μs |
+
+The reconstructed mean lifetime is close to the accepted free-muon lifetime of approximately 2.2 μs.
+
+However, this analysis should be interpreted as a detector-development study rather than a precision lifetime measurement.
+
+No detector acceptance correction, efficiency correction, background subtraction or systematic uncertainty estimate has been applied.
+
+---
+
+## Lifetime Histogram
+
+![Muon lifetime histogram](results/publication_lifetime_hist.png)
+
+---
+
+## Diagnostics
+
+Several diagnostic tools are included in the repository:
+
+| Script | Purpose |
+|---|---|
+| `plot_detector_diagnostics.py` | Visual inspection of selected pulse candidates |
+| `pulse_statistics.py` | Pulse height, width, prominence and polarity statistics |
+| `summary_report.py` | Generates a text summary of the analysis |
+| `mle_lifetime.py` | Experimental maximum-likelihood style estimator |
+| `publication_histogram.py` | Produces a polished histogram for documentation |
+
+These tools were used to understand the detector behaviour and evaluate the reconstruction performance.
+
+---
+
+## Limitations
+
+The present analysis intentionally remains simple.
+
+The following effects are not included:
+
+- detector acceptance corrections
+- detector efficiency modelling
+- background subtraction
+- systematic uncertainty estimation
+- full maximum-likelihood lifetime extraction
+- pulse-shape template fitting
+
+The reconstructed lifetime should therefore be interpreted as the output of the current detector algorithm, not as a precision measurement of the physical muon lifetime.
+
+---
+
+## Future Work
+
+Possible future improvements include:
+
+- pulse-shape discrimination
+- template matching
+- adaptive detector thresholds
+- background estimation
+- detector efficiency studies
+- uncertainty propagation
+- full statistical lifetime fit
+- ROOT/C++ implementation
+- large-scale ROOT dataset analysis
+
+---
+
+## Requirements
+
+Install the required Python packages with:
 
 ```bash
 pip install -r requirements.txt
@@ -123,106 +191,30 @@ pip install -r requirements.txt
 
 ---
 
-# Usage
+## Usage
 
-Run
+Run the main analysis:
 
 ```bash
 python main.py
 ```
 
-Typical output
+Generate the analysis summary:
 
-```text
-Found 180 files
+```bash
+python diagnostics/summary_report.py
+```
 
-========================
-Muon Lifetime Analysis
-========================
-Events used: 180
-Mean lifetime = 2.235 μs
-Std deviation = 0.939 μs
-========================
+Generate the publication-style histogram:
+
+```bash
+python diagnostics/publication_histogram.py
 ```
 
 ---
 
-# Current Limitations
+## Educational Purpose
 
-The current implementation uses a simple peak-selection algorithm to identify the delayed decay signal.
+This repository was developed as a scientific programming and detector-analysis project using real experimental waveform data.
 
-Future versions will improve event selection by introducing
-
-- adaptive thresholds
-- baseline subtraction
-- pulse prominence
-- pulse width selection
-- event quality cuts
-- exponential lifetime fitting
-- uncertainty estimation
-
----
-
-# Future Work
-
-Planned improvements include
-
-- Improved pulse detection using SciPy
-- Robust exponential decay fitting
-- Automatic event quality classification
-- Interactive waveform inspection
-- ROOT implementation
-- Comparison with Monte Carlo simulations
-- Statistical uncertainty estimation
-
----
-
-# Technologies
-
-- Python
-- NumPy
-- Pandas
-- Matplotlib
-
----
-
-# Status
-
-**Version 1.0**
-
-✔ Working analysis pipeline
-
-✔ Real experimental data
-
-✔ Automatic lifetime extraction
-
-✔ Histogram generation
-
-✔ Statistical analysis
-
----
-
-# License
-
-This project is intended for educational and scientific purposes.
-=======
-# Muon Lifetime Analysis
-
-This project analyzes raw detector data from a muon decay experiment.
-
-## What it does
-- Loads waveform data (TIME, CH1, CH2)
-- Detects muon events
-- Uses coincidence signal (CH2) for filtering
-- Extracts muon decay times
-- Fits exponential decay to estimate lifetime
-
-## Physics model
-Muon decay follows:
-N(t) = N0 * exp(-t / τ)
-
-where τ is the muon lifetime.
-
-## Goal
-Estimate the muon lifetime from experimental data.
->>>>>>> origin/main
+It demonstrates the structure of a small particle-physics analysis pipeline, including data loading, detector development, event reconstruction, diagnostics and result reporting.
