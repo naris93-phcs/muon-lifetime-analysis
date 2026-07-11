@@ -1,5 +1,4 @@
 from pathlib import Path
-
 from src.io import load_csv
 from src.detector import find_peaks
 from src.lifetime import compute_lifetime
@@ -26,10 +25,16 @@ for f in files:
 
     tau = compute_lifetime(t0, t1)
 
+
     if tau is not None:
         lifetimes.append(tau)
 
+
+# Create output directory if it does not already exist
+Path("results").mkdir(parents=True, exist_ok=True)
+
+# Generate and save histogram
 make_histogram(
     lifetimes,
     savepath="results/lifetime_hist.png"
-)
+    )
