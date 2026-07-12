@@ -1,51 +1,61 @@
-from pathlib import Path
-import sys
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(PROJECT_ROOT))
-
 import numpy as np
 
-from src.io import load_csv
-from src.detector import find_peaks
-from src.lifetime import compute_lifetime
+from src.config import DATA_DIR, FILE_PATTERN, T_MIN_US
+from src.pipeline import calculate_lifetimes
 
 
-DATA_PATH = Path("data/raw")
+def estimate_truncated_lifetime(
+    lifetimes_us: np.ndarray,
+    t_min_us: float,
+) -> tuple[float, float, int]:
+    """
+    Estimate the lifetime of a truncated exponential distribution.
 
-T_MIN_US = 0.8
+    Parameters
+    ----------
+    lifetimes_us : numpy.ndarray
+        Reconstructed lifetimes in microseconds.
+    t_min_us : float
+        Lower detection threshold in microseconds.
 
-files = sorted(DATA_PATH.glob("TriggerAuto_*.csv"))
+    Returns
+    -------
+    tuple
+        Estimated lifetime, statistical uncertainty, and number of events.
+    """
 
-lifetimes_us = []
+    shifted_lifetimes = lifetimes_us - t_min_us
+    shifted_lifetimes = shifted_lifetimes[shifted_lifetimes > 0]
 
-for f in files:
-    df = load_csv(f)
+    if len(shifted_lifetimes) == 0:
+        raise ValueError("No lifetime events remain after the lower cutoff.")
 
-    time = df["TIME"].values
-    ch1 = df["CH1"].values
-    ch2 = df["CH2"].values
+    tau_mle = np.mean(shifted_lifetimes)
+    tau_error = tau_mle / np.sqrt(len(shifted_lifetimes))
 
-    t0, t1 = find_peaks(time, ch1, ch2)
-    tau = compute_lifetime(t0, t1)
+    return tau_mle, tau_error, len(shifted_lifetimes)
 
-    if tau is not None:
-        lifetimes_us.append(tau * 1e6)
 
-lifetimes_us = np.array(lifetimes_us)
+def main() -> None:
+    """Run the truncated-exponential maximum-likelihood estimate."""
 
-# MLE για truncated exponential με cutoff t_min:
-# tau_hat = mean(t - t_min)
-shifted = lifetimes_us - T_MIN_US
-shifted = shifted[shifted > 0]
+    files = sorted(DATA_DIR.glob(FILE_PATTERN))
+    lifetimes_s = calculate_lifetimes(files)
+    lifetimes_us = np.asarray(lifetimes_s) * 1e6
 
-tau_mle = np.mean(shifted)
-tau_err = tau_mle / np.sqrt(len(shifted))
+    tau_mle, tau_error, events_used = estimate_truncated_lifetime(
+        lifetimes_us,
+        T_MIN_US,
+    )
 
-print("========================")
-print("Muon Lifetime MLE")
-print("========================")
-print(f"Events used: {len(shifted)}")
-print(f"t_min = {T_MIN_US:.2f} μs")
-print(f"tau_MLE = {tau_mle:.3f} ± {tau_err:.3f} μs")
-print("========================")
+    print("========================")
+    print("Muon Lifetime MLE")
+    print("========================")
+    print(f"Events used: {events_used}")
+    print(f"t_min = {T_MIN_US:.2f} μs")
+    print(f"tau_MLE = {tau_mle:.3f} ± {tau_error:.3f} μs")
+    print("========================")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,40 +1,29 @@
-from pathlib import Path
-from src.io import load_csv
-from src.detector import find_peaks
-from src.lifetime import compute_lifetime
 from src.analysis import make_histogram
+from src.pipeline import calculate_lifetimes
+from src.config import (
+    DATA_DIR,
+    FILE_PATTERN,
+    HISTOGRAM_PATH,
+    RESULTS_DIR,
+)
 
 
-DATA_PATH = Path("data/raw")
+def main() -> None:
+    """Run the complete muon lifetime analysis pipeline."""
 
-files = sorted(DATA_PATH.glob("TriggerAuto_*.csv"))
+    files = sorted(DATA_DIR.glob(FILE_PATTERN))
 
-print(f"Found {len(files)} files")
+    print(f"Found {len(files)} files")
 
-lifetimes = []
+    lifetimes = calculate_lifetimes(files)
 
-for f in files:
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
-    df = load_csv(f)
-
-    time = df["TIME"].values
-    ch1 = df["CH1"].values
-    ch2 = df["CH2"].values
-
-    t0, t1 = find_peaks(time, ch1, ch2)
-
-    tau = compute_lifetime(t0, t1)
-
-
-    if tau is not None:
-        lifetimes.append(tau)
-
-
-# Create output directory if it does not already exist
-Path("results").mkdir(parents=True, exist_ok=True)
-
-# Generate and save histogram
-make_histogram(
-    lifetimes,
-    savepath="results/lifetime_hist.png"
+    make_histogram(
+        lifetimes,
+        savepath=HISTOGRAM_PATH,
     )
+
+
+if __name__ == "__main__":
+    main()
