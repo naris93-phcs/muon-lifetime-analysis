@@ -1,96 +1,113 @@
-from pathlib import Path
-import sys
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(PROJECT_ROOT))
-
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
-from src.io import load_csv
-from src.detector import find_peaks
-from src.lifetime import compute_lifetime
-
-
-DATA_PATH = Path("data/raw")
-OUT_PATH = Path("results")
-OUT_PATH.mkdir(parents=True, exist_ok=True)
-
-ACCEPTED_MUON_LIFETIME = 2.197  # microseconds
-
-files = sorted(DATA_PATH.glob("TriggerAuto_*.csv"))
-
-lifetimes = []
-
-for f in files:
-    df = load_csv(f)
-
-    time = df["TIME"].values
-    ch1 = df["CH1"].values
-    ch2 = df["CH2"].values
-
-    t0, t1 = find_peaks(time, ch1, ch2)
-    tau = compute_lifetime(t0, t1)
-
-    if tau is not None:
-        lifetimes.append(tau * 1e6)
-
-lifetimes = np.array(lifetimes)
-
-mean_tau = np.mean(lifetimes)
-std_tau = np.std(lifetimes)
-n_events = len(lifetimes)
-
-plt.figure(figsize=(8, 5))
-
-plt.hist(
-    lifetimes,
-    bins=16,
-    range=(0.8, 6.0),
-    edgecolor="black",
-    alpha=0.75
+from src.config import (
+    ACCEPTED_MUON_LIFETIME_US,
+    DATA_DIR,
+    FILE_PATTERN,
+    FIT_MAX_US,
+    PUBLICATION_HISTOGRAM_PATH,
+    T_MIN_US,
 )
+from src.pipeline import calculate_lifetimes
 
-plt.axvline(
-    ACCEPTED_MUON_LIFETIME,
-    linestyle="--",
-    linewidth=2,
-    label=f"Accepted μ lifetime ≈ {ACCEPTED_MUON_LIFETIME:.3f} μs"
-)
 
-plt.axvline(
-    mean_tau,
-    linestyle="-",
-    linewidth=2,
-    label=f"Mean reconstructed = {mean_tau:.3f} μs"
-)
+HISTOGRAM_BINS = 16
 
-text = (
-    f"Events: {n_events}\n"
-    f"Mean: {mean_tau:.3f} μs\n"
-    f"Std: {std_tau:.3f} μs"
-)
 
-plt.text(
-    0.98,
-    0.95,
-    text,
-    transform=plt.gca().transAxes,
-    verticalalignment="top",
-    horizontalalignment="right",
-    bbox=dict(boxstyle="round", alpha=0.15)
-)
+def plot_publication_histogram(
+    lifetimes_us: np.ndarray,
+) -> None:
+    """Create and save a publication-style muon lifetime histogram."""
 
-plt.xlabel("Reconstructed lifetime (μs)")
-plt.ylabel("Counts")
-plt.title("Cosmic Muon Lifetime Reconstruction")
-plt.legend()
-plt.grid(True, alpha=0.3)
+    if len(lifetimes_us) == 0:
+        raise ValueError("No valid muon lifetime events were reconstructed.")
 
-plt.tight_layout()
+    mean_lifetime_us = np.mean(lifetimes_us)
+    std_lifetime_us = np.std(lifetimes_us)
+    n_events = len(lifetimes_us)
 
-outfile = OUT_PATH / "publication_lifetime_hist.png"
-plt.savefig(outfile, dpi=200)
-plt.show()
+    fig, ax = plt.subplots(figsize=(8, 5))
 
-print(f"Saved plot to: {outfile}")
+    ax.hist(
+        lifetimes_us,
+        bins=HISTOGRAM_BINS,
+        range=(T_MIN_US, FIT_MAX_US),
+        edgecolor="black",
+        alpha=0.75,
+    )
+
+    ax.axvline(
+        ACCEPTED_MUON_LIFETIME_US,
+        linestyle="--",
+        linewidth=2,
+        label=(
+            "Accepted muon lifetime "
+            f"≈ {ACCEPTED_MUON_LIFETIME_US:.3f} μs"
+        ),
+    )
+
+    ax.axvline(
+        mean_lifetime_us,
+        linestyle="-",
+        linewidth=2,
+        label=f"Mean reconstructed = {mean_lifetime_us:.3f} μs",
+    )
+
+    statistics_text = (
+        f"Events: {n_events}\n"
+        f"Mean: {mean_lifetime_us:.3f} μs\n"
+        f"Std: {std_lifetime_us:.3f} μs"
+    )
+
+    ax.text(
+        0.98,
+        0.95,
+        statistics_text,
+        transform=ax.transAxes,
+        verticalalignment="top",
+        horizontalalignment="right",
+        bbox={
+            "boxstyle": "round",
+            "alpha": 0.15,
+        },
+    )
+
+    ax.set_xlabel("Reconstructed lifetime (μs)")
+    ax.set_ylabel("Counts")
+    ax.set_title("Cosmic Muon Lifetime Reconstruction")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    fig.tight_layout()
+
+    PUBLICATION_HISTOGRAM_PATH.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    fig.savefig(
+        PUBLICATION_HISTOGRAM_PATH,
+        dpi=200,
+    )
+
+    plt.show()
+
+
+def main() -> None:
+    """Generate the publication-style lifetime histogram."""
+
+    files = sorted(DATA_DIR.glob(FILE_PATTERN))
+    lifetimes_s = calculate_lifetimes(files)
+    lifetimes_us = np.asarray(lifetimes_s) * 1e6
+
+    plot_publication_histogram(lifetimes_us)
+
+    print(
+        "Publication histogram saved to: "
+        f"{PUBLICATION_HISTOGRAM_PATH}"
+    )
+
+
+if __name__ == "__main__":
+    main()

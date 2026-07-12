@@ -1,115 +1,129 @@
-from pathlib import Path
-import sys
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(PROJECT_ROOT))
-
-
-from pathlib import Path
 import csv
+
 import numpy as np
-from scipy.signal import find_peaks
 
-from src.io import load_csv
+from src.config import (
+    DATA_DIR,
+    FILE_PATTERN,
+    MAX_LIFETIME,
+    MIN_DELAY,
+    PULSE_STATISTICS_PATH,
+)
+from src.detector import find_pulse_candidates
+from src.io import load_waveforms
 
-DATA_PATH = Path("data/raw")
-OUTFILE = Path("results/pulse_statistics.csv")
 
-files = sorted(DATA_PATH.glob("TriggerAuto_*.csv"))
+CSV_COLUMNS = [
+    "file",
+    "tau_us",
+    "polarity",
+    "height",
+    "prominence",
+    "width",
+]
 
-rows = []
 
-for f in files:
+def analyze_pulse_file(file_path):
+    """
+    Extract the selected delayed-pulse properties from one waveform file.
 
-    df = load_csv(f)
+    Parameters
+    ----------
+    file_path : pathlib.Path
+        Path to an oscilloscope CSV file.
 
-    time = df["TIME"].values
-    ch1 = df["CH1"].values
-    ch2 = df["CH2"].values
+    Returns
+    -------
+    list or None
+        CSV row containing the pulse measurements, or None if no valid
+        delayed pulse is found.
+    """
 
-    time = np.array(time)
-    ch1 = np.array(ch1)
-    ch2 = np.array(ch2)
+    time, ch1, ch2 = load_waveforms(file_path)
 
-    # Trigger
-    t0_idx = np.argmax(ch2)
-    t0 = time[t0_idx]
+    t0_index = np.argmax(ch2)
+    t0 = time[t0_index]
 
-    # Start searching after veto
-    min_delay = 0.8e-6
-    search_start = np.searchsorted(time, t0 + min_delay)
+    search_start = np.searchsorted(
+        time,
+        t0 + MIN_DELAY,
+    )
 
     if search_start >= len(ch1):
-        continue
+        return None
 
-    ch = ch1[search_start:]
+    waveform = ch1[search_start:]
+    candidates = find_pulse_candidates(waveform)
 
-    candidates = []
+    if not candidates:
+        return None
 
-    # Positive pulses
-    peaks, props = find_peaks(
-        ch,
-        height=0.012,
-        prominence=0.005,
-        width=2
+    best_candidate = max(
+        candidates,
+        key=lambda candidate: candidate["prominence"],
     )
 
-    for i, p in enumerate(peaks):
-        candidates.append({
-            "idx": p,
-            "polarity": "positive",
-            "prominence": props["prominences"][i],
-            "width": props["widths"][i],
-            "height": props["peak_heights"][i]
-        })
+    t1 = time[search_start + best_candidate["index"]]
+    lifetime_s = t1 - t0
 
-    # Negative pulses
-    peaks, props = find_peaks(
-        -ch,
-        height=0.012,
-        prominence=0.005,
-        width=2
+    if lifetime_s <= 0 or lifetime_s > MAX_LIFETIME:
+        return None
+
+    return [
+        file_path.name,
+        lifetime_s * 1e6,
+        best_candidate["polarity"],
+        best_candidate["height"],
+        best_candidate["prominence"],
+        best_candidate["width"],
+    ]
+
+
+def collect_pulse_statistics(files):
+    """Collect valid pulse measurements from multiple waveform files."""
+
+    rows = []
+
+    for file_path in files:
+        row = analyze_pulse_file(file_path)
+
+        if row is not None:
+            rows.append(row)
+
+    return rows
+
+
+def save_pulse_statistics(rows) -> None:
+    """Save pulse statistics to CSV."""
+
+    PULSE_STATISTICS_PATH.parent.mkdir(
+        parents=True,
+        exist_ok=True,
     )
 
-    for i, p in enumerate(peaks):
-        candidates.append({
-            "idx": p,
-            "polarity": "negative",
-            "prominence": props["prominences"][i],
-            "width": props["widths"][i],
-            "height": props["peak_heights"][i]
-        })
+    with PULSE_STATISTICS_PATH.open(
+        "w",
+        newline="",
+        encoding="utf-8",
+    ) as file:
+        writer = csv.writer(file)
+        writer.writerow(CSV_COLUMNS)
+        writer.writerows(rows)
 
-    if len(candidates) == 0:
-        continue
 
-    best = max(candidates, key=lambda x: x["prominence"])
+def main() -> None:
+    """Generate and save delayed-pulse statistics."""
 
-    t1 = time[search_start + best["idx"]]
-    tau = (t1 - t0) * 1e6
+    files = sorted(DATA_DIR.glob(FILE_PATTERN))
+    rows = collect_pulse_statistics(files)
 
-    rows.append([
-        f.name,
-        tau,
-        best["polarity"],
-        best["height"],
-        best["prominence"],
-        best["width"]
-    ])
+    save_pulse_statistics(rows)
 
-with open(OUTFILE, "w", newline="") as file:
+    print(
+        f"Saved {len(rows)} events to "
+        f"{PULSE_STATISTICS_PATH}"
+    )
 
-    writer = csv.writer(file)
 
-    writer.writerow([
-        "file",
-        "tau_us",
-        "polarity",
-        "height",
-        "prominence",
-        "width"
-    ])
-
-    writer.writerows(rows)
-
-print(f"Saved {len(rows)} events to {OUTFILE}")
+if __name__ == "__main__":
+    main()

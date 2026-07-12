@@ -94,60 +94,49 @@ The dataset consists of real oscilloscope waveforms acquired during a laboratory
 
 # Installation
 
-Clone the repository
+
+## Requirements
+
+- Python 3.14 
+- Git
+
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/naris93-phcs/muon-lifetime-analysis.git
-
 cd muon-lifetime-analysis
 ```
 
-Create a virtual environment
+### 2. Create a virtual environment
 
 ```bash
 python -m venv .venv
 ```
 
-Activate it
+### 3. Activate the environment
 
-Windows
+**Windows**
 
 ```bash
 .venv\Scripts\activate
 ```
 
-Linux / macOS
+**Linux / macOS**
 
 ```bash
 source .venv/bin/activate
 ```
 
-Install the required packages
+### 4. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
----
-
-# Usage
-
-Run the full analysis
+### 5. Run the analysis
 
 ```bash
 python main.py
-```
-
-Generate the analysis summary
-
-```bash
-python diagnostics/summary_report.py
-```
-
-Generate the publication histogram
-
-```bash
-python diagnostics/publication_histogram.py
 ```
 
 ---

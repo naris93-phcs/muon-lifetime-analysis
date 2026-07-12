@@ -1,113 +1,162 @@
-from pathlib import Path
-import sys
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(PROJECT_ROOT))
-
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from scipy.optimize import curve_fit
 
-from src.io import load_csv
-from src.detector import find_peaks
-from src.lifetime import compute_lifetime
-
-
-DATA_PATH = Path("data/raw")
-OUT_PATH = Path("results")
-OUT_PATH.mkdir(parents=True, exist_ok=True)
-
-
-def exponential(t, A, tau, C):
-    return A * np.exp(-t / tau) + C
-
-
-files = sorted(DATA_PATH.glob("TriggerAuto_*.csv"))
-
-lifetimes = []
-
-for f in files:
-    df = load_csv(f)
-
-    time = df["TIME"].values
-    ch1 = df["CH1"].values
-    ch2 = df["CH2"].values
-
-    t0, t1 = find_peaks(time, ch1, ch2)
-    tau = compute_lifetime(t0, t1)
-
-    if tau is not None:
-        lifetimes.append(tau * 1e6)  # seconds -> μs
-
-
-lifetimes = np.array(lifetimes)
-
-print(f"Events used: {len(lifetimes)}")
-
-# Histogram
-counts, bin_edges = np.histogram(
-    lifetimes,
-    bins=12,
-    range=(0.8, 6.0)
+from src.config import (
+    DATA_DIR,
+    FILE_PATTERN,
+    FIT_BINS,
+    FIT_MAX_US,
+    LIFETIME_FIT_PATH,
+    T_MIN_US,
 )
+from src.pipeline import calculate_lifetimes
 
-bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
 
-# Fit μόνο στα bins που έχουν counts > 0
-mask = counts > 0
+def exponential(
+    time_us: np.ndarray,
+    amplitude: float,
+    lifetime_us: float,
+    background: float,
+) -> np.ndarray:
+    """Evaluate an exponential decay model with constant background."""
 
-x_fit = bin_centers[mask]
-y_fit = counts[mask]
+    return amplitude * np.exp(-time_us / lifetime_us) + background
 
-# Initial guesses
-A0 = max(y_fit)
-tau0 = 2.2
-C0 = 0.0
 
-popt, pcov = curve_fit(
-    exponential,
-    x_fit,
-    y_fit,
-    p0=[A0, tau0, C0],
-    maxfev=10000
-)
+def fit_lifetime_distribution(
+    lifetimes_us: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Fit an exponential model to the binned lifetime distribution.
 
-A_fit, tau_fit, C_fit = popt
-tau_err = np.sqrt(np.diag(pcov))[1]
+    Returns
+    -------
+    tuple of numpy.ndarray
+        Best-fit parameters and their standard errors.
+    """
 
-print("========================")
-print("Exponential Fit")
-print("========================")
-print(f"Fitted lifetime tau = {tau_fit:.3f} ± {tau_err:.3f} μs")
-print("========================")
+    counts, bin_edges = np.histogram(
+        lifetimes_us,
+        bins=FIT_BINS,
+        range=(T_MIN_US, FIT_MAX_US),
+    )
 
-# Smooth curve
-t_curve = np.linspace(0.8, 6.0, 300)
-y_curve = exponential(t_curve, A_fit, tau_fit, C_fit)
+    bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
 
-plt.figure(figsize=(8, 5))
+    nonempty_mask = counts > 0
+    x_fit = bin_centers[nonempty_mask]
+    y_fit = counts[nonempty_mask]
 
-plt.hist(
-    lifetimes,
-    bins=12,
-    range=(0.8, 6.0),
-    alpha=0.7,
-    label="Data"
-)
+    if len(x_fit) < 3:
+        raise ValueError("Not enough non-empty histogram bins for fitting.")
 
-plt.plot(
-    t_curve,
-    y_curve,
-    linewidth=2,
-    label=f"Fit: tau = {tau_fit:.2f} ± {tau_err:.2f} μs"
-)
+    initial_parameters = [
+        float(np.max(y_fit)),
+        2.2,
+        0.0,
+    ]
 
-plt.xlabel("Muon lifetime τ (μs)")
-plt.ylabel("Counts")
-plt.title("Muon Lifetime Histogram with Exponential Fit")
-plt.legend()
-plt.grid(True)
+    fitted_parameters, covariance = curve_fit(
+        exponential,
+        x_fit,
+        y_fit,
+        p0=initial_parameters,
+        maxfev=10_000,
+    )
 
-plt.tight_layout()
-plt.savefig(OUT_PATH / "lifetime_fit.png", dpi=150)
-plt.show()
+    parameter_errors = np.sqrt(np.diag(covariance))
+
+    return fitted_parameters, parameter_errors
+
+
+def plot_lifetime_fit(
+    lifetimes_us: np.ndarray,
+    fitted_parameters: np.ndarray,
+    parameter_errors: np.ndarray,
+) -> None:
+    """Plot and save the lifetime histogram with its exponential fit."""
+
+    amplitude, lifetime_us, background = fitted_parameters
+    lifetime_error_us = parameter_errors[1]
+
+    time_curve = np.linspace(T_MIN_US, FIT_MAX_US, 300)
+    fitted_curve = exponential(
+        time_curve,
+        amplitude,
+        lifetime_us,
+        background,
+    )
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+
+    ax.hist(
+        lifetimes_us,
+        bins=FIT_BINS,
+        range=(T_MIN_US, FIT_MAX_US),
+        alpha=0.7,
+        label="Data",
+    )
+
+    ax.plot(
+        time_curve,
+        fitted_curve,
+        linewidth=2,
+        label=(
+            f"Fit: tau = {lifetime_us:.2f} "
+            f"± {lifetime_error_us:.2f} μs"
+        ),
+    )
+
+    ax.set_xlabel("Muon lifetime τ (μs)")
+    ax.set_ylabel("Counts")
+    ax.set_title("Muon Lifetime Histogram with Exponential Fit")
+    ax.legend()
+    ax.grid(True)
+
+    fig.tight_layout()
+
+    LIFETIME_FIT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(LIFETIME_FIT_PATH, dpi=150)
+
+    plt.show()
+
+
+def main() -> None:
+    """Fit and plot the reconstructed muon lifetime distribution."""
+
+    files = sorted(DATA_DIR.glob(FILE_PATTERN))
+    lifetimes_s = calculate_lifetimes(files)
+    lifetimes_us = np.asarray(lifetimes_s) * 1e6
+
+    if len(lifetimes_us) == 0:
+        raise ValueError("No valid muon lifetime events were reconstructed.")
+
+    fitted_parameters, parameter_errors = fit_lifetime_distribution(
+        lifetimes_us
+    )
+
+    lifetime_us = fitted_parameters[1]
+    lifetime_error_us = parameter_errors[1]
+
+    print(f"Events used: {len(lifetimes_us)}")
+    print("========================")
+    print("Exponential Fit")
+    print("========================")
+    print(
+        f"Fitted lifetime tau = "
+        f"{lifetime_us:.3f} ± {lifetime_error_us:.3f} μs"
+    )
+    print("========================")
+
+    plot_lifetime_fit(
+        lifetimes_us,
+        fitted_parameters,
+        parameter_errors,
+    )
+
+    print(f"Fit plot saved to: {LIFETIME_FIT_PATH}")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,76 +1,75 @@
-from pathlib import Path
-import sys
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(PROJECT_ROOT))
-
 import numpy as np
 
-from src.io import load_csv
-from src.detector import find_peaks
-from src.lifetime import compute_lifetime
+from src.config import (
+    DATA_DIR,
+    FILE_PATTERN,
+    MAX_LIFETIME,
+    MIN_DELAY,
+    SUMMARY_PATH,
+)
+from src.pipeline import calculate_lifetimes
 
 
-DATA_PATH = Path("data/raw")
-OUT_PATH = Path("results")
-OUT_PATH.mkdir(parents=True, exist_ok=True)
+def create_summary() -> str:
+    """Create a text summary of the muon lifetime analysis."""
 
-files = sorted(DATA_PATH.glob("TriggerAuto_*.csv"))
+    files = sorted(DATA_DIR.glob(FILE_PATTERN))
+    lifetimes_s = calculate_lifetimes(files)
+    lifetimes_us = np.asarray(lifetimes_s) * 1e6
 
-lifetimes = []
+    if len(files) == 0:
+        raise ValueError(f"No input files found in {DATA_DIR}")
 
-for f in files:
-    df = load_csv(f)
+    if len(lifetimes_us) == 0:
+        raise ValueError("No valid muon lifetime events were reconstructed.")
 
-    time = df["TIME"].values
-    ch1 = df["CH1"].values
-    ch2 = df["CH2"].values
+    detection_efficiency = 100 * len(lifetimes_us) / len(files)
 
-    t0, t1 = find_peaks(time, ch1, ch2)
-    tau = compute_lifetime(t0, t1)
-
-    if tau is not None:
-        lifetimes.append(tau * 1e6)
-
-lifetimes = np.array(lifetimes)
-
-summary = f"""
-Muon Lifetime Analysis Summary
+    return f"""Muon Lifetime Analysis Summary
 ==============================
 
 Input files
 -----------
 Total files analyzed      : {len(files)}
-Events used               : {len(lifetimes)}
-Detection efficiency      : {len(lifetimes) / len(files) * 100:.1f} %
+Events used               : {len(lifetimes_us)}
+Detection efficiency      : {detection_efficiency:.1f} %
 
 Lifetime statistics
 -------------------
-Mean lifetime             : {np.mean(lifetimes):.3f} μs
-Standard deviation        : {np.std(lifetimes):.3f} μs
-Median lifetime           : {np.median(lifetimes):.3f} μs
-Minimum lifetime          : {np.min(lifetimes):.3f} μs
-Maximum lifetime          : {np.max(lifetimes):.3f} μs
+Mean lifetime             : {np.mean(lifetimes_us):.3f} μs
+Standard deviation        : {np.std(lifetimes_us):.3f} μs
+Median lifetime           : {np.median(lifetimes_us):.3f} μs
+Minimum lifetime          : {np.min(lifetimes_us):.3f} μs
+Maximum lifetime          : {np.max(lifetimes_us):.3f} μs
 
 Detector configuration
 ----------------------
 Trigger channel           : CH2
 Decay search channel      : CH1
-Early-time veto           : 0.8 μs
+Early-time veto           : {MIN_DELAY * 1e6:.1f} μs
+Maximum lifetime          : {MAX_LIFETIME * 1e6:.1f} μs
 Pulse selection           : dual polarity
 Selection metric          : peak prominence
 
 Notes
 -----
-The reconstructed mean lifetime is close to the expected
-free muon lifetime of approximately 2.2 μs. No detector
+The reconstructed lifetime distribution is compared with the
+free-muon lifetime of approximately 2.2 μs. No detector
 acceptance or efficiency correction has been applied.
 """
 
-outfile = OUT_PATH / "summary.txt"
 
-with open(outfile, "w", encoding="utf-8") as f:
-    f.write(summary)
+def main() -> None:
+    """Generate and save the analysis summary."""
 
-print(summary)
-print(f"Saved summary to: {outfile}")
+    summary = create_summary()
+
+    SUMMARY_PATH.parent.mkdir(parents=True, exist_ok=True)
+    SUMMARY_PATH.write_text(summary, encoding="utf-8")
+
+    print(summary)
+    print(f"Summary saved to: {SUMMARY_PATH}")
+
+
+if __name__ == "__main__":
+    main()

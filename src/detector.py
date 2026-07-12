@@ -16,14 +16,69 @@ Detector strategy (v2):
 
 import numpy as np
 from scipy.signal import find_peaks as scipy_find_peaks
+from src.config import (
+    MAX_LIFETIME,
+    MIN_DELAY,
+    MIN_HEIGHT,
+    MIN_PROMINENCE,
+    MIN_WIDTH,
+)
+
+def find_pulse_candidates(waveform):
+    """
+    Detect positive and negative pulse candidates in a waveform.
+
+    Parameters
+    ----------
+    waveform : array-like
+        Waveform segment searched for delayed decay pulses.
+
+    Returns
+    -------
+    list of dict
+        Candidate pulse properties.
+    """
+
+    waveform = np.asarray(waveform)
+    candidates = []
+
+    # Positive pulse candidates
+    peaks, properties = scipy_find_peaks(
+        waveform,
+        height=MIN_HEIGHT,
+        prominence=MIN_PROMINENCE,
+        width=MIN_WIDTH,
+    )
+
+    for index, peak_index in enumerate(peaks):
+        candidates.append({
+            "index": int(peak_index),
+            "polarity": "positive",
+            "height": float(properties["peak_heights"][index]),
+            "prominence": float(properties["prominences"][index]),
+            "width": float(properties["widths"][index]),
+        })
+
+    # Negative pulse candidates
+    peaks, properties = scipy_find_peaks(
+        -waveform,
+        height=MIN_HEIGHT,
+        prominence=MIN_PROMINENCE,
+        width=MIN_WIDTH,
+    )
+
+    for index, peak_index in enumerate(peaks):
+        candidates.append({
+            "index": int(peak_index),
+            "polarity": "negative",
+            "height": float(properties["peak_heights"][index]),
+            "prominence": float(properties["prominences"][index]),
+            "width": float(properties["widths"][index]),
+        })
+
+    return candidates
 
 
-# Detector configuration
-MIN_DELAY = 0.8e-6          # seconds
-MIN_HEIGHT = 0.012          # volts
-MIN_PROMINENCE = 0.005      # volts
-MIN_WIDTH = 2               # samples
-MAX_LIFETIME = 10e-6        # seconds
 
 
 def find_peaks(time, ch1, ch2):
@@ -72,45 +127,8 @@ def find_peaks(time, ch1, ch2):
 
     waveform = ch1[search_start:]
 
-    candidates = []
-
-    # ------------------------------------------------------------------
-    # Positive pulse candidates
-    # ------------------------------------------------------------------
-
-    peaks, props = scipy_find_peaks(
-        waveform,
-        height=MIN_HEIGHT,
-        prominence=MIN_PROMINENCE,
-        width=MIN_WIDTH,
-    )
-
-    for i, peak in enumerate(peaks):
-
-        candidates.append({
-            "index": peak,
-            "prominence": props["prominences"][i],
-            "polarity": "positive",
-        })
-
-    # ------------------------------------------------------------------
-    # Negative pulse candidates
-    # ------------------------------------------------------------------
-
-    peaks, props = scipy_find_peaks(
-        -waveform,
-        height=MIN_HEIGHT,
-        prominence=MIN_PROMINENCE,
-        width=MIN_WIDTH,
-    )
-
-    for i, peak in enumerate(peaks):
-
-        candidates.append({
-            "index": peak,
-            "prominence": props["prominences"][i],
-            "polarity": "negative",
-        })
+    candidates = find_pulse_candidates(waveform)
+    
 
     if not candidates:
         return t0, None
