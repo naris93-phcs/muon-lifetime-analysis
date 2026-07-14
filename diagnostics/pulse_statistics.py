@@ -12,7 +12,6 @@ from src.config import (
 from src.detector import find_pulse_candidates
 from src.io import load_waveforms
 
-
 CSV_COLUMNS = [
     "file",
     "tau_us",
@@ -119,10 +118,7 @@ def main() -> None:
 
     save_pulse_statistics(rows)
 
-    print(
-        f"Saved {len(rows)} events to "
-        f"{PULSE_STATISTICS_PATH}"
-    )
+    print(f"Saved {len(rows)} events to " f"{PULSE_STATISTICS_PATH}")
 
 
 if __name__ == "__main__":

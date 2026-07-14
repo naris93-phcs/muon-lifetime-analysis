@@ -3,7 +3,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-
 REQUIRED_COLUMNS = {"TIME", "CH1", "CH2"}
 
 

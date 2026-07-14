@@ -24,6 +24,7 @@ from src.config import (
     MIN_WIDTH,
 )
 
+
 def find_pulse_candidates(waveform):
     """
     Detect positive and negative pulse candidates in a waveform.
@@ -51,13 +52,15 @@ def find_pulse_candidates(waveform):
     )
 
     for index, peak_index in enumerate(peaks):
-        candidates.append({
-            "index": int(peak_index),
-            "polarity": "positive",
-            "height": float(properties["peak_heights"][index]),
-            "prominence": float(properties["prominences"][index]),
-            "width": float(properties["widths"][index]),
-        })
+        candidates.append(
+            {
+                "index": int(peak_index),
+                "polarity": "positive",
+                "height": float(properties["peak_heights"][index]),
+                "prominence": float(properties["prominences"][index]),
+                "width": float(properties["widths"][index]),
+            }
+        )
 
     # Negative pulse candidates
     peaks, properties = scipy_find_peaks(
@@ -68,17 +71,17 @@ def find_pulse_candidates(waveform):
     )
 
     for index, peak_index in enumerate(peaks):
-        candidates.append({
-            "index": int(peak_index),
-            "polarity": "negative",
-            "height": float(properties["peak_heights"][index]),
-            "prominence": float(properties["prominences"][index]),
-            "width": float(properties["widths"][index]),
-        })
+        candidates.append(
+            {
+                "index": int(peak_index),
+                "polarity": "negative",
+                "height": float(properties["peak_heights"][index]),
+                "prominence": float(properties["prominences"][index]),
+                "width": float(properties["widths"][index]),
+            }
+        )
 
     return candidates
-
-
 
 
 def find_peaks(time, ch1, ch2):
@@ -128,7 +131,6 @@ def find_peaks(time, ch1, ch2):
     waveform = ch1[search_start:]
 
     candidates = find_pulse_candidates(waveform)
-    
 
     if not candidates:
         return t0, None

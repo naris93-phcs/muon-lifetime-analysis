@@ -56,9 +56,7 @@ def plot_detector_event(
     valid_candidates = []
 
     for candidate in candidates:
-        candidate_time = time[
-            search_start + candidate["index"]
-        ]
+        candidate_time = time[search_start + candidate["index"]]
 
         lifetime_s = candidate_time - t0
 
@@ -164,10 +162,7 @@ def main() -> None:
     plots_created = 0
 
     for index, file_path in enumerate(selected_files):
-        output_path = (
-            DIAGNOSTICS_DIR
-            / f"diagnostic_{index:03d}.png"
-        )
+        output_path = DIAGNOSTICS_DIR / f"diagnostic_{index:03d}.png"
 
         created = plot_detector_event(
             file_path,
@@ -177,10 +172,7 @@ def main() -> None:
         if created:
             plots_created += 1
 
-    print(
-        f"Saved {plots_created} diagnostic plots to: "
-        f"{DIAGNOSTICS_DIR}"
-    )
+    print(f"Saved {plots_created} diagnostic plots to: " f"{DIAGNOSTICS_DIR}")
 
 
 if __name__ == "__main__":
