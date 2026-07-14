@@ -15,12 +15,7 @@ def make_histogram(lifetimes, savepath=None):
     # -------------------------
     plt.figure(figsize=(8, 5))
 
-    plt.hist(
-        lifetimes_us,
-        bins=25,
-        edgecolor="black",
-        alpha=0.8
-    )
+    plt.hist(lifetimes_us, bins=25, edgecolor="black", alpha=0.8)
 
     plt.xlabel("Muon lifetime (μs)")
     plt.ylabel("Counts")

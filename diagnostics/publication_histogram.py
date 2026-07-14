@@ -11,7 +11,6 @@ from src.config import (
 )
 from src.pipeline import calculate_lifetimes
 
-
 HISTOGRAM_BINS = 16
 
 
@@ -103,10 +102,7 @@ def main() -> None:
 
     plot_publication_histogram(lifetimes_us)
 
-    print(
-        "Publication histogram saved to: "
-        f"{PUBLICATION_HISTOGRAM_PATH}"
-    )
+    print("Publication histogram saved to: " f"{PUBLICATION_HISTOGRAM_PATH}")
 
 
 if __name__ == "__main__":

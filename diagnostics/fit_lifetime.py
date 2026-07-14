@@ -132,19 +132,22 @@ def main() -> None:
     if len(lifetimes_us) == 0:
         raise ValueError("No valid muon lifetime events were reconstructed.")
 
-    fitted_parameters, parameter_errors = fit_lifetime_distribution(
-        lifetimes_us
-    )
+    (
+        fitted_parameters,
+        parameter_errors,
+    ) = fit_lifetime_distribution(lifetimes_us)
 
     lifetime_us = fitted_parameters[1]
     lifetime_error_us = parameter_errors[1]
 
-    print(f"Events used: {len(lifetimes_us)}")
+    print(
+        f"Events used: {len(lifetimes_us)}"
+    )
     print("========================")
     print("Exponential Fit")
     print("========================")
     print(
-        f"Fitted lifetime tau = "
+        "Fitted lifetime tau = "
         f"{lifetime_us:.3f} ± {lifetime_error_us:.3f} μs"
     )
     print("========================")

@@ -5,7 +5,6 @@ from src.io import load_waveforms
 from src.lifetime import compute_lifetime
 
 
-
 def calculate_lifetimes(files: Iterable[Path]) -> list[float]:
     """
     Calculate valid muon lifetimes from oscilloscope CSV files.

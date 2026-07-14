@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def normalize(signal):
     signal = np.array(signal)
     return signal - np.mean(signal)

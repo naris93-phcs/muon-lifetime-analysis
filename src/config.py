@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 # ---------------------------------------------------------------------
 # Project paths
 # ---------------------------------------------------------------------
@@ -26,11 +25,11 @@ ACCEPTED_MUON_LIFETIME_US = 2.197
 # Detector configuration
 # ---------------------------------------------------------------------
 
-MIN_DELAY = 0.8e-6          # seconds
-MIN_HEIGHT = 0.012          # volts
-MIN_PROMINENCE = 0.005      # volts
-MIN_WIDTH = 2               # samples
-MAX_LIFETIME = 10e-6        # seconds
+MIN_DELAY = 0.8e-6  # seconds
+MIN_HEIGHT = 0.012  # volts
+MIN_PROMINENCE = 0.005  # volts
+MIN_WIDTH = 2  # samples
+MAX_LIFETIME = 10e-6  # seconds
 
 FIT_MAX_US = 6.0
 FIT_BINS = 12
