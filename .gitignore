@@ -2,3 +2,6 @@
 __pycache__/
 *.pyc
 results/
+# Raw ROOT acquisition files
+data/root/
+*.root
