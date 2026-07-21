@@ -1,8 +1,9 @@
 import numpy as np
+import pandas as pd
 
-from src.config import DATA_DIR, FILE_PATTERN, T_MIN_US
-from src.pipeline import calculate_lifetimes
 
+
+T_MIN_US = 0.80
 
 def estimate_truncated_lifetime(
     lifetimes_us: np.ndarray,
@@ -39,9 +40,17 @@ def estimate_truncated_lifetime(
 def main() -> None:
     """Run the truncated-exponential maximum-likelihood estimate."""
 
-    files = sorted(DATA_DIR.glob(FILE_PATTERN))
-    lifetimes_s = calculate_lifetimes(files)
-    lifetimes_us = np.asarray(lifetimes_s) * 1e6
+    accepted = pd.read_csv(
+        "results/root_full_dataset/accepted_candidates.csv"
+    )
+
+    lifetimes_us = accepted["decay_time_us"].to_numpy()
+    bins = np.arange(0.8, 9.2, 0.2)
+    counts, edges = np.histogram(lifetimes_us, bins=bins)
+
+    print("\nHistogram (0.2 μs bins)")
+    for left, right, count in zip(edges[:-1], edges[1:], counts):
+        print(f"{left:4.1f} – {right:4.1f} μs : {count}")
 
     tau_mle, tau_error, events_used = estimate_truncated_lifetime(
         lifetimes_us,
@@ -53,9 +62,9 @@ def main() -> None:
     print("========================")
     print(f"Events used: {events_used}")
     print(f"t_min = {T_MIN_US:.2f} μs")
-    print(f"tau_MLE = {tau_mle:.3f} ± {tau_error:.3f} μs")
+    print(f"tau_MLE = {tau_mle:.4f} ± {tau_error:.4f} μs")
     print("========================")
 
 
 if __name__ == "__main__":
-    main()
+    main()    

@@ -79,7 +79,7 @@ CHUNK_SIZE = 100
 
 # For a quick test, set an integer such as 500.
 # Leave as None to scan the complete selected ROOT file.
-MAX_EVENTS = None
+MAX_EVENTS = 20
 
 
 def find_root_files(directory: Path) -> list[Path]:
@@ -135,6 +135,7 @@ def baseline_and_noise(
         print("Samples:", len(baseline_samples))
         print("Unique values:", len(np.unique(baseline_samples)))
         print("First 20 values:", baseline_samples[:20])
+
     noise_std = robust_noise_std(baseline_samples)
 
     return baseline, noise_std
@@ -424,16 +425,6 @@ def analyze_event(
         channel1_noise,
         channel2_noise,
     )
-    if event_index < 20:
-        print(
-            event_index,
-            trigger_valid,
-            channel1_trigger_amplitude,
-            channel2_trigger_amplitude,
-            channel1_noise,
-            channel2_noise,
-        )
-
     if not trigger_valid:
         return [
             {
@@ -1036,6 +1027,7 @@ def main() -> None:
     print()
     print(f"Analyzing: {selected_file.name}")
     print("-" * 78)
+    
 
     all_results = scan_root_file(
         selected_file

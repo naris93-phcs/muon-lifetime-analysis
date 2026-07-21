@@ -10,14 +10,14 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 INPUT_CSV = (
     PROJECT_ROOT
     / "results"
-    / "root_decay_selection"
+    / "root_full_dataset"
     / "accepted_candidates.csv"
 )
 
 OUTPUT_DIR = (
     PROJECT_ROOT
     / "results"
-    / "root_decay_selection"
+    / "root_full_dataset"
 )
 
 OUTPUT_CSV = (
