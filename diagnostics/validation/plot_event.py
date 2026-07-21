@@ -38,7 +38,7 @@ print("CH2 unique values:", len(np.unique(ch2)))
 # Αν τα μήκη δεν ταιριάζουν, σχεδίασε μόνο ό,τι κοινό έχουν.
 n = min(len(time), len(ch1), len(ch2))
 
-plt.figure(figsize=(12,5))
+plt.figure(figsize=(12, 5))
 plt.plot(time[:n] * 1e6, ch1[:n], label="CH1")
 plt.plot(time[:n] * 1e6, ch2[:n], label="CH2")
 

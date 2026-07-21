@@ -102,10 +102,7 @@ def plot_lifetime_fit(
         time_curve,
         fitted_curve,
         linewidth=2,
-        label=(
-            f"Fit: tau = {lifetime_us:.2f} "
-            f"± {lifetime_error_us:.2f} μs"
-        ),
+        label=(f"Fit: tau = {lifetime_us:.2f} " f"± {lifetime_error_us:.2f} μs"),
     )
 
     ax.set_xlabel("Muon lifetime τ (μs)")
@@ -140,16 +137,11 @@ def main() -> None:
     lifetime_us = fitted_parameters[1]
     lifetime_error_us = parameter_errors[1]
 
-    print(
-        f"Events used: {len(lifetimes_us)}"
-    )
+    print(f"Events used: {len(lifetimes_us)}")
     print("========================")
     print("Exponential Fit")
     print("========================")
-    print(
-        "Fitted lifetime tau = "
-        f"{lifetime_us:.3f} ± {lifetime_error_us:.3f} μs"
-    )
+    print("Fitted lifetime tau = " f"{lifetime_us:.3f} ± {lifetime_error_us:.3f} μs")
     print("========================")
 
     plot_lifetime_fit(

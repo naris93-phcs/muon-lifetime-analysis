@@ -5,14 +5,9 @@ import numpy as np
 import pandas as pd
 import uproot
 
-
 ROOT_FILE = Path("data/root/CH_t12_141223_1.root")
-REJECTED_CSV = Path(
-    "results/root_decay_selection/rejected_candidates.csv"
-)
-OUTPUT_DIR = Path(
-    "results/root_decay_selection/rejected_event_review"
-)
+REJECTED_CSV = Path("results/root_decay_selection/rejected_candidates.csv")
+OUTPUT_DIR = Path("results/root_decay_selection/rejected_event_review")
 
 TREE_NAME = "t1"
 
@@ -41,9 +36,7 @@ def main() -> None:
         )
 
     if not REJECTED_CSV.exists():
-        raise FileNotFoundError(
-            f"Rejected-candidate CSV not found: {REJECTED_CSV}"
-        )
+        raise FileNotFoundError(f"Rejected-candidate CSV not found: {REJECTED_CSV}")
 
     rejected = pd.read_csv(REJECTED_CSV)
 
@@ -59,10 +52,7 @@ def main() -> None:
     missing_columns = required_columns - set(rejected.columns)
 
     if missing_columns:
-        raise ValueError(
-            "Missing required CSV columns: "
-            f"{sorted(missing_columns)}"
-        )
+        raise ValueError("Missing required CSV columns: " f"{sorted(missing_columns)}")
 
     with uproot.open(ROOT_FILE) as root_file:
         tree = root_file[TREE_NAME]
@@ -89,15 +79,12 @@ def main() -> None:
             ch1 = -baseline_subtract(ch1_raw)
             ch2 = -baseline_subtract(ch2_raw)
 
-            candidate_index = int(
-                np.argmin(np.abs(time_us - decay_time_us))
-            )
+            candidate_index = int(np.argmin(np.abs(time_us - decay_time_us)))
 
             candidate_time_us = time_us[candidate_index]
 
-            window_mask = (
-                (time_us >= candidate_time_us - WINDOW_BEFORE_US)
-                & (time_us <= candidate_time_us + WINDOW_AFTER_US)
+            window_mask = (time_us >= candidate_time_us - WINDOW_BEFORE_US) & (
+                time_us <= candidate_time_us + WINDOW_AFTER_US
             )
 
             if not np.any(window_mask):
@@ -108,12 +95,8 @@ def main() -> None:
 
             local_indices = np.flatnonzero(window_mask)
 
-            ch1_local_index = local_indices[
-                np.argmax(ch1[window_mask])
-            ]
-            ch2_local_index = local_indices[
-                np.argmax(ch2[window_mask])
-            ]
+            ch1_local_index = local_indices[np.argmax(ch1[window_mask])]
+            ch2_local_index = local_indices[np.argmax(ch2[window_mask])]
 
             fig, axes = plt.subplots(
                 2,
@@ -145,9 +128,7 @@ def main() -> None:
             )
 
             axes[0].set_ylabel("Inverted amplitude (V)")
-            axes[0].set_title(
-                f"Event {event_index} — CH1 simultaneous-pulse veto"
-            )
+            axes[0].set_title(f"Event {event_index} — CH1 simultaneous-pulse veto")
             axes[0].grid(alpha=0.25)
             axes[0].legend()
 
@@ -210,10 +191,7 @@ def main() -> None:
 
             fig.tight_layout(rect=(0, 0, 0.71, 0.95))
 
-            output_path = (
-                OUTPUT_DIR
-                / f"rejected_event_{event_index:05d}.png"
-            )
+            output_path = OUTPUT_DIR / f"rejected_event_{event_index:05d}.png"
 
             fig.savefig(
                 output_path,
@@ -222,9 +200,7 @@ def main() -> None:
             )
             plt.close(fig)
 
-            print(
-                f"Saved event {event_index}: {output_path}"
-            )
+            print(f"Saved event {event_index}: {output_path}")
 
     print()
     print(f"Rejected candidates reviewed: {len(rejected)}")

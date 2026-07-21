@@ -4,22 +4,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
-INPUT_CSV = (
-    PROJECT_ROOT
-    / "results"
-    / "root_full_dataset"
-    / "accepted_candidates.csv"
-)
+INPUT_CSV = PROJECT_ROOT / "results" / "root_full_dataset" / "accepted_candidates.csv"
 
-OUTPUT_DIR = (
-    PROJECT_ROOT
-    / "results"
-    / "root_full_dataset"
-    / "early_late_comparison"
-)
+OUTPUT_DIR = PROJECT_ROOT / "results" / "root_full_dataset" / "early_late_comparison"
 
 SUMMARY_CSV = OUTPUT_DIR / "group_summary.csv"
 FILE_COUNTS_CSV = OUTPUT_DIR / "file_counts.csv"
@@ -51,9 +40,7 @@ def load_candidates() -> pd.DataFrame:
     """Load accepted candidates from the full ROOT dataset."""
 
     if not INPUT_CSV.exists():
-        raise FileNotFoundError(
-            f"Input CSV was not found:\n{INPUT_CSV}"
-        )
+        raise FileNotFoundError(f"Input CSV was not found:\n{INPUT_CSV}")
 
     dataframe = pd.read_csv(INPUT_CSV)
 
@@ -67,23 +54,16 @@ def load_candidates() -> pd.DataFrame:
     missing_columns = required_columns - set(dataframe.columns)
 
     if missing_columns:
-        raise ValueError(
-            "Missing required columns: "
-            f"{sorted(missing_columns)}"
-        )
+        raise ValueError("Missing required columns: " f"{sorted(missing_columns)}")
 
-    dataframe = dataframe[
-        dataframe["accepted"] == True  # noqa: E712
-    ].copy()
+    dataframe = dataframe[dataframe["accepted"] == True].copy()  # noqa: E712
 
     dataframe["decay_time_us"] = pd.to_numeric(
         dataframe["decay_time_us"],
         errors="coerce",
     )
 
-    dataframe = dataframe.dropna(
-        subset=["decay_time_us"]
-    )
+    dataframe = dataframe.dropna(subset=["decay_time_us"])
 
     return dataframe
 
@@ -94,21 +74,13 @@ def select_groups(
     """Select early and late accepted-candidate groups."""
 
     early = dataframe[
-        (
-            dataframe["decay_time_us"] >= EARLY_MIN_US
-        )
-        & (
-            dataframe["decay_time_us"] < EARLY_MAX_US
-        )
+        (dataframe["decay_time_us"] >= EARLY_MIN_US)
+        & (dataframe["decay_time_us"] < EARLY_MAX_US)
     ].copy()
 
     late = dataframe[
-        (
-            dataframe["decay_time_us"] >= LATE_MIN_US
-        )
-        & (
-            dataframe["decay_time_us"] < LATE_MAX_US
-        )
+        (dataframe["decay_time_us"] >= LATE_MIN_US)
+        & (dataframe["decay_time_us"] < LATE_MAX_US)
     ].copy()
 
     early["group"] = "early"
@@ -126,8 +98,7 @@ def make_group_summary(
     available_columns = [
         column
         for column in COMPARISON_COLUMNS
-        if column in early.columns
-        and column in late.columns
+        if column in early.columns and column in late.columns
     ]
 
     rows = []
@@ -142,9 +113,7 @@ def make_group_summary(
                 errors="coerce",
             )
 
-            values = values[
-                np.isfinite(values)
-            ]
+            values = values[np.isfinite(values)]
 
             if len(values) == 0:
                 continue
@@ -171,40 +140,24 @@ def make_file_counts(
 ) -> pd.DataFrame:
     """Count early and late candidates in each ROOT file."""
 
-    early_counts = (
-        early.groupby("file")
-        .size()
-        .rename("early_events")
-    )
+    early_counts = early.groupby("file").size().rename("early_events")
 
-    late_counts = (
-        late.groupby("file")
-        .size()
-        .rename("late_events")
-    )
+    late_counts = late.groupby("file").size().rename("late_events")
 
     counts = pd.concat(
         [early_counts, late_counts],
         axis=1,
     ).fillna(0)
 
-    counts["early_events"] = (
-        counts["early_events"].astype(int)
-    )
+    counts["early_events"] = counts["early_events"].astype(int)
 
-    counts["late_events"] = (
-        counts["late_events"].astype(int)
-    )
+    counts["late_events"] = counts["late_events"].astype(int)
 
-    counts["total_selected_events"] = (
-        counts["early_events"]
-        + counts["late_events"]
-    )
+    counts["total_selected_events"] = counts["early_events"] + counts["late_events"]
 
     counts["early_fraction"] = np.where(
         counts["total_selected_events"] > 0,
-        counts["early_events"]
-        / counts["total_selected_events"],
+        counts["early_events"] / counts["total_selected_events"],
         np.nan,
     )
 
@@ -233,20 +186,14 @@ def plot_variable_comparison(
         errors="coerce",
     ).to_numpy()
 
-    early_values = early_values[
-        np.isfinite(early_values)
-    ]
+    early_values = early_values[np.isfinite(early_values)]
 
-    late_values = late_values[
-        np.isfinite(late_values)
-    ]
+    late_values = late_values[np.isfinite(late_values)]
 
     if len(early_values) == 0 or len(late_values) == 0:
         return
 
-    combined = np.concatenate(
-        [early_values, late_values]
-    )
+    combined = np.concatenate([early_values, late_values])
 
     lower_limit = np.quantile(
         combined,
@@ -267,9 +214,7 @@ def plot_variable_comparison(
         41,
     )
 
-    figure, axis = plt.subplots(
-        figsize=(10, 6)
-    )
+    figure, axis = plt.subplots(figsize=(10, 6))
 
     axis.hist(
         early_values,
@@ -277,10 +222,7 @@ def plot_variable_comparison(
         density=True,
         histtype="step",
         linewidth=2,
-        label=(
-            f"Early: {EARLY_MIN_US:.2f}–"
-            f"{EARLY_MAX_US:.2f} μs"
-        ),
+        label=(f"Early: {EARLY_MIN_US:.2f}–" f"{EARLY_MAX_US:.2f} μs"),
     )
 
     axis.hist(
@@ -289,36 +231,22 @@ def plot_variable_comparison(
         density=True,
         histtype="step",
         linewidth=2,
-        label=(
-            f"Late: {LATE_MIN_US:.2f}–"
-            f"{LATE_MAX_US:.2f} μs"
-        ),
+        label=(f"Late: {LATE_MIN_US:.2f}–" f"{LATE_MAX_US:.2f} μs"),
     )
 
-    axis.set_xlabel(
-        column.replace("_", " ")
-    )
+    axis.set_xlabel(column.replace("_", " "))
 
-    axis.set_ylabel(
-        "Normalized density"
-    )
+    axis.set_ylabel("Normalized density")
 
-    axis.set_title(
-        f"Early versus late candidates\n{column}"
-    )
+    axis.set_title(f"Early versus late candidates\n{column}")
 
-    axis.grid(
-        alpha=0.3
-    )
+    axis.grid(alpha=0.3)
 
     axis.legend()
 
     figure.tight_layout()
 
-    output_path = (
-        OUTPUT_DIR
-        / f"{column}_comparison.png"
-    )
+    output_path = OUTPUT_DIR / f"{column}_comparison.png"
 
     figure.savefig(
         output_path,
@@ -336,26 +264,18 @@ def plot_file_fractions(
     if file_counts.empty:
         return
 
-    figure, axis = plt.subplots(
-        figsize=(13, 7)
-    )
+    figure, axis = plt.subplots(figsize=(13, 7))
 
     axis.bar(
         file_counts["file"],
         file_counts["early_fraction"],
     )
 
-    axis.set_xlabel(
-        "ROOT file"
-    )
+    axis.set_xlabel("ROOT file")
 
-    axis.set_ylabel(
-        "Early fraction within early + late samples"
-    )
+    axis.set_ylabel("Early fraction within early + late samples")
 
-    axis.set_title(
-        "Early-candidate fraction by ROOT file"
-    )
+    axis.set_title("Early-candidate fraction by ROOT file")
 
     axis.tick_params(
         axis="x",
@@ -389,23 +309,13 @@ def print_summary(
     print("EARLY–LATE ACCEPTED-CANDIDATE COMPARISON")
     print("=" * 72)
 
-    print(
-        f"Early interval: "
-        f"{EARLY_MIN_US:.2f}–{EARLY_MAX_US:.2f} μs"
-    )
+    print(f"Early interval: " f"{EARLY_MIN_US:.2f}–{EARLY_MAX_US:.2f} μs")
 
-    print(
-        f"Early events: {len(early)}"
-    )
+    print(f"Early events: {len(early)}")
 
-    print(
-        f"Late interval: "
-        f"{LATE_MIN_US:.2f}–{LATE_MAX_US:.2f} μs"
-    )
+    print(f"Late interval: " f"{LATE_MIN_US:.2f}–{LATE_MAX_US:.2f} μs")
 
-    print(
-        f"Late events: {len(late)}"
-    )
+    print(f"Late events: {len(late)}")
 
     print("-" * 72)
 
@@ -419,16 +329,10 @@ def print_summary(
         "early",
         "late",
     }.issubset(pivot.columns):
-        pivot["early_to_late_median_ratio"] = (
-            pivot["early"] / pivot["late"]
-        )
+        pivot["early_to_late_median_ratio"] = pivot["early"] / pivot["late"]
 
     print("\nMedian comparison:\n")
-    print(
-        pivot.to_string(
-            float_format=lambda value: f"{value:.5g}"
-        )
-    )
+    print(pivot.to_string(float_format=lambda value: f"{value:.5g}"))
 
     print("=" * 72)
 
@@ -443,19 +347,13 @@ def main() -> None:
 
     candidates = load_candidates()
 
-    early, late = select_groups(
-        candidates
-    )
+    early, late = select_groups(candidates)
 
     if early.empty:
-        raise ValueError(
-            "No early events were found."
-        )
+        raise ValueError("No early events were found.")
 
     if late.empty:
-        raise ValueError(
-            "No late events were found."
-        )
+        raise ValueError("No late events were found.")
 
     summary = make_group_summary(
         early,
@@ -484,23 +382,16 @@ def main() -> None:
     )
 
     for column in COMPARISON_COLUMNS:
-        if (
-            column in early.columns
-            and column in late.columns
-        ):
+        if column in early.columns and column in late.columns:
             plot_variable_comparison(
                 early,
                 late,
                 column,
             )
 
-    plot_file_fractions(
-        file_counts
-    )
+    plot_file_fractions(file_counts)
 
-    print(
-        f"\nSaved comparison results in:\n{OUTPUT_DIR}"
-    )
+    print(f"\nSaved comparison results in:\n{OUTPUT_DIR}")
 
 
 if __name__ == "__main__":

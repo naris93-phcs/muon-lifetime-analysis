@@ -5,28 +5,13 @@ import numpy as np
 import pandas as pd
 import uproot
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
-INPUT_CSV = (
-    PROJECT_ROOT
-    / "results"
-    / "root_full_dataset"
-    / "accepted_candidates.csv"
-)
+INPUT_CSV = PROJECT_ROOT / "results" / "root_full_dataset" / "accepted_candidates.csv"
 
-ROOT_DIR = (
-    PROJECT_ROOT
-    / "data"
-    / "root"
-)
+ROOT_DIR = PROJECT_ROOT / "data" / "root"
 
-OUTPUT_DIR = (
-    PROJECT_ROOT
-    / "results"
-    / "root_full_dataset"
-    / "early_transient_review"
-)
+OUTPUT_DIR = PROJECT_ROOT / "results" / "root_full_dataset" / "early_transient_review"
 
 
 EARLY_MIN_US = 0.80
@@ -66,24 +51,18 @@ def find_tree(root_file: uproot.ReadOnlyDirectory):
         if required_branches.issubset(branch_names):
             return candidate
 
-    raise ValueError(
-        "No compatible TTree with time, channel1 and channel2 was found."
-    )
+    raise ValueError("No compatible TTree with time, channel1 and channel2 was found.")
 
 
 def load_early_candidates() -> pd.DataFrame:
     """Load a random sample of early accepted candidates."""
 
     if not INPUT_CSV.exists():
-        raise FileNotFoundError(
-            f"Candidate CSV not found:\n{INPUT_CSV}"
-        )
+        raise FileNotFoundError(f"Candidate CSV not found:\n{INPUT_CSV}")
 
     dataframe = pd.read_csv(INPUT_CSV)
 
-    dataframe = dataframe[
-        dataframe["accepted"] == True  # noqa: E712
-    ].copy()
+    dataframe = dataframe[dataframe["accepted"] == True].copy()  # noqa: E712
 
     dataframe["decay_time_us"] = pd.to_numeric(
         dataframe["decay_time_us"],
@@ -91,12 +70,8 @@ def load_early_candidates() -> pd.DataFrame:
     )
 
     early = dataframe[
-        (
-            dataframe["decay_time_us"] >= EARLY_MIN_US
-        )
-        & (
-            dataframe["decay_time_us"] < EARLY_MAX_US
-        )
+        (dataframe["decay_time_us"] >= EARLY_MIN_US)
+        & (dataframe["decay_time_us"] < EARLY_MAX_US)
     ].copy()
 
     early = early.dropna(
@@ -108,9 +83,7 @@ def load_early_candidates() -> pd.DataFrame:
     )
 
     if early.empty:
-        raise ValueError(
-            "No early accepted candidates were found."
-        )
+        raise ValueError("No early accepted candidates were found.")
 
     sample_size = min(
         NUMBER_OF_EVENTS,
@@ -130,9 +103,7 @@ def load_event(
     """Load time, CH1 and CH2 arrays for one event."""
 
     if not root_path.exists():
-        raise FileNotFoundError(
-            f"ROOT file not found:\n{root_path}"
-        )
+        raise FileNotFoundError(f"ROOT file not found:\n{root_path}")
 
     with uproot.open(root_path) as root_file:
         tree = find_tree(root_file)
@@ -170,9 +141,7 @@ def load_event(
     )
 
     if minimum_length == 0:
-        raise ValueError(
-            "One or more event arrays are empty."
-        )
+        raise ValueError("One or more event arrays are empty.")
 
     time = time[:minimum_length]
     channel1 = channel1[:minimum_length]
@@ -190,9 +159,7 @@ def convert_time_to_microseconds(
     ROOT files normally store time in seconds.
     """
 
-    maximum_absolute_time = np.max(
-        np.abs(time)
-    )
+    maximum_absolute_time = np.max(np.abs(time))
 
     if maximum_absolute_time < 1e-2:
         return time * 1e6
@@ -206,10 +173,7 @@ def find_local_extrema(
 ) -> tuple[float, float]:
     """Find the strongest negative excursion in the 0.3–0.8 μs region."""
 
-    mask = (
-        (time_us >= ZOOM_MIN_US)
-        & (time_us < SEARCH_CUT_US)
-    )
+    mask = (time_us >= ZOOM_MIN_US) & (time_us < SEARCH_CUT_US)
 
     if not np.any(mask):
         return float("nan"), float("nan")
@@ -217,9 +181,7 @@ def find_local_extrema(
     local_time = time_us[mask]
     local_signal = signal[mask]
 
-    index = np.argmin(
-        local_signal
-    )
+    index = np.argmin(local_signal)
 
     return (
         float(local_time[index]),
@@ -239,15 +201,10 @@ def plot_event(
     event_index = int(row["event_index"])
     decay_time_us = float(row["decay_time_us"])
 
-    zoom_mask = (
-        (time_us >= ZOOM_MIN_US)
-        & (time_us <= ZOOM_MAX_US)
-    )
+    zoom_mask = (time_us >= ZOOM_MIN_US) & (time_us <= ZOOM_MAX_US)
 
     if not np.any(zoom_mask):
-        raise ValueError(
-            "No samples were found in the requested zoom range."
-        )
+        raise ValueError("No samples were found in the requested zoom range.")
 
     transient_time, transient_value = find_local_extrema(
         time_us,
@@ -280,13 +237,9 @@ def plot_event(
         label="Accepted candidate",
     )
 
-    axes[0].set_ylabel(
-        "CH1 voltage (V)"
-    )
+    axes[0].set_ylabel("CH1 voltage (V)")
 
-    axes[0].grid(
-        alpha=0.3
-    )
+    axes[0].grid(alpha=0.3)
 
     axes[0].legend()
 
@@ -306,9 +259,7 @@ def plot_event(
         decay_time_us,
         linestyle=":",
         linewidth=2,
-        label=(
-            f"Candidate: {decay_time_us:.3f} μs"
-        ),
+        label=(f"Candidate: {decay_time_us:.3f} μs"),
     )
 
     if np.isfinite(transient_time):
@@ -317,30 +268,18 @@ def plot_event(
             [transient_value],
             marker="x",
             s=80,
-            label=(
-                f"Pre-cut minimum: "
-                f"{transient_time:.3f} μs"
-            ),
+            label=(f"Pre-cut minimum: " f"{transient_time:.3f} μs"),
         )
 
-    axes[1].set_xlabel(
-        "Time after trigger (μs)"
-    )
+    axes[1].set_xlabel("Time after trigger (μs)")
 
-    axes[1].set_ylabel(
-        "CH2 voltage (V)"
-    )
+    axes[1].set_ylabel("CH2 voltage (V)")
 
-    axes[1].grid(
-        alpha=0.3
-    )
+    axes[1].grid(alpha=0.3)
 
     axes[1].legend()
 
-    figure.suptitle(
-        f"{file_name} | event {event_index}\n"
-        f"Early accepted candidate"
-    )
+    figure.suptitle(f"{file_name} | event {event_index}\n" f"Early accepted candidate")
 
     figure.tight_layout()
 
@@ -372,12 +311,8 @@ def main() -> None:
     print("=" * 72)
     print("EARLY TRANSIENT REVIEW")
     print("=" * 72)
-    print(
-        f"Candidates selected: {len(candidates)}"
-    )
-    print(
-        f"Output directory:\n{OUTPUT_DIR}"
-    )
+    print(f"Candidates selected: {len(candidates)}")
+    print(f"Output directory:\n{OUTPUT_DIR}")
     print("-" * 72)
 
     successful = 0
@@ -387,10 +322,7 @@ def main() -> None:
         file_name = str(row["file"])
         event_index = int(row["event_index"])
 
-        root_path = (
-            ROOT_DIR
-            / file_name
-        )
+        root_path = ROOT_DIR / file_name
 
         try:
             time, channel1, channel2 = load_event(
@@ -398,9 +330,7 @@ def main() -> None:
                 event_index=event_index,
             )
 
-            time_us = convert_time_to_microseconds(
-                time
-            )
+            time_us = convert_time_to_microseconds(time)
 
             plot_event(
                 row=row,
@@ -411,27 +341,17 @@ def main() -> None:
 
             successful += 1
 
-            print(
-                f"Saved: {file_name}, event {event_index}"
-            )
+            print(f"Saved: {file_name}, event {event_index}")
 
         except Exception as error:
             failed += 1
 
-            print(
-                f"FAILED: {file_name}, event {event_index}"
-            )
-            print(
-                f"Reason: {error}"
-            )
+            print(f"FAILED: {file_name}, event {event_index}")
+            print(f"Reason: {error}")
 
     print("-" * 72)
-    print(
-        f"Successful plots: {successful}"
-    )
-    print(
-        f"Failed events: {failed}"
-    )
+    print(f"Successful plots: {successful}")
+    print(f"Failed events: {failed}")
     print("=" * 72)
 
 

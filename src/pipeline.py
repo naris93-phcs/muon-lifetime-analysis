@@ -1,34 +1,37 @@
 from collections.abc import Iterable
-from pathlib import Path
-from src.detector import find_peaks
-from src.io import load_waveforms
-from src.lifetime import compute_lifetime
+
+from src.detector import analyze_event
+from src.io import WaveformEvent
 
 
-def calculate_lifetimes(files: Iterable[Path]) -> list[float]:
+def analyze_events(
+    events: Iterable[WaveformEvent],
+) -> list[dict]:
     """
-    Calculate valid muon lifetimes from oscilloscope CSV files.
+    Analyze a sequence of waveform events.
 
     Parameters
     ----------
-    files : iterable of pathlib.Path
-        CSV files containing TIME, CH1, and CH2 data.
+    events : iterable of WaveformEvent
+        ROOT waveform events.
 
     Returns
     -------
-    list of float
-        Valid muon lifetimes.
+    list of dict
+        Event-analysis results.
     """
 
-    lifetimes = []
+    results = []
 
-    for file_path in files:
-        time, ch1, ch2 = load_waveforms(file_path)
+    for event in events:
+        event_results = analyze_event(
+            file_name=event.file_path.name,
+            event_index=event.event_index,
+            time=event.time,
+            channel1=event.channel1,
+            channel2=event.channel2,
+        )
 
-        t0, t1 = find_peaks(time, ch1, ch2)
-        tau = compute_lifetime(t0, t1)
+        results.extend(event_results)
 
-        if tau is not None:
-            lifetimes.append(tau)
-
-    return lifetimes
+    return results

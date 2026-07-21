@@ -7,15 +7,10 @@ import pandas as pd
 import uproot
 from scipy.signal import find_peaks, peak_widths
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 ROOT_DATA_DIR = PROJECT_ROOT / "data" / "root"
 
-RESULTS_DIR = (
-    PROJECT_ROOT
-    / "results"
-    / "root_candidate_scan"
-)
+RESULTS_DIR = PROJECT_ROOT / "results" / "root_candidate_scan"
 
 CANDIDATES_CSV = RESULTS_DIR / "candidate_pulses.csv"
 HISTOGRAM_PATH = RESULTS_DIR / "candidate_time_histogram.png"
@@ -82,9 +77,7 @@ def calculate_baseline_and_noise(
     baseline_mask = time_us < -0.10
 
     if not np.any(baseline_mask):
-        raise ValueError(
-            "No pre-trigger samples available for baseline estimation."
-        )
+        raise ValueError("No pre-trigger samples available for baseline estimation.")
 
     pre_trigger = signal[baseline_mask]
 
@@ -114,10 +107,7 @@ def scan_channel(
     corrected_signal = signal - baseline
     inverted_signal = -corrected_signal
 
-    search_mask = (
-        (time_us >= SEARCH_START_US)
-        & (time_us <= SEARCH_END_US)
-    )
+    search_mask = (time_us >= SEARCH_START_US) & (time_us <= SEARCH_END_US)
 
     search_time = time_us[search_mask]
     search_signal = inverted_signal[search_mask]
@@ -125,9 +115,7 @@ def scan_channel(
     if len(search_time) < 3:
         return []
 
-    sample_interval_us = float(
-        np.median(np.diff(search_time))
-    )
+    sample_interval_us = float(np.median(np.diff(search_time)))
 
     sample_interval_ns = sample_interval_us * 1000.0
 
@@ -167,20 +155,11 @@ def scan_channel(
         pulse_time_us = float(search_time[peak_index])
         amplitude_v = float(search_signal[peak_index])
 
-        prominence_v = float(
-            properties["prominences"][candidate_number]
-        )
+        prominence_v = float(properties["prominences"][candidate_number])
 
-        width_ns = float(
-            widths_samples[candidate_number]
-            * sample_interval_ns
-        )
+        width_ns = float(widths_samples[candidate_number] * sample_interval_ns)
 
-        signal_to_noise = (
-            amplitude_v / noise_std
-            if noise_std > 0
-            else np.nan
-        )
+        signal_to_noise = amplitude_v / noise_std if noise_std > 0 else np.nan
 
         candidates.append(
             {
@@ -240,9 +219,7 @@ def scan_root_file(
     Scan every event in one ROOT file for delayed pulse candidates.
     """
 
-    time_events, channel1_events, channel2_events = (
-        load_tree_arrays(file_path)
-    )
+    time_events, channel1_events, channel2_events = load_tree_arrays(file_path)
 
     all_candidates = []
 
@@ -250,20 +227,13 @@ def scan_root_file(
 
     for event_index in range(number_of_events):
         if event_index % 100 == 0:
-            print(
-                f"Scanning event "
-                f"{event_index}/{number_of_events}"
-            )
+            print(f"Scanning event " f"{event_index}/{number_of_events}")
 
         time = ak.to_numpy(time_events[event_index])
         channel1 = ak.to_numpy(channel1_events[event_index])
         channel2 = ak.to_numpy(channel2_events[event_index])
 
-        if not (
-            len(time)
-            == len(channel1)
-            == len(channel2)
-        ):
+        if not (len(time) == len(channel1) == len(channel2)):
             print(
                 f"Skipping malformed event {event_index}: "
                 "array lengths do not match."
@@ -284,10 +254,7 @@ def scan_root_file(
             "channel2",
         )
 
-        for candidate in (
-            channel1_candidates
-            + channel2_candidates
-        ):
+        for candidate in channel1_candidates + channel2_candidates:
             candidate["file"] = file_path.name
             candidate["event_index"] = event_index
 
@@ -338,26 +305,14 @@ def print_scan_summary(
     print()
 
     print("Pulse-time summary:")
-    print(
-        candidates["pulse_time_us"]
-        .describe()
-        .round(4)
-    )
+    print(candidates["pulse_time_us"].describe().round(4))
 
     early_candidates = candidates[
-        (
-            candidates["pulse_time_us"] >= 0.35
-        )
-        & (
-            candidates["pulse_time_us"] <= 0.65
-        )
+        (candidates["pulse_time_us"] >= 0.35) & (candidates["pulse_time_us"] <= 0.65)
     ]
 
     print()
-    print(
-        "Candidates between 0.35 and 0.65 μs: "
-        f"{len(early_candidates)}"
-    )
+    print("Candidates between 0.35 and 0.65 μs: " f"{len(early_candidates)}")
 
     print()
     print("Strongest candidates:")
@@ -392,9 +347,7 @@ def save_candidate_histogram(
 
     plt.figure(figsize=(11, 6))
 
-    for channel_name, channel_data in candidates.groupby(
-        "channel"
-    ):
+    for channel_name, channel_data in candidates.groupby("channel"):
         plt.hist(
             channel_data["pulse_time_us"],
             bins=90,
@@ -411,10 +364,7 @@ def save_candidate_histogram(
 
     plt.xlabel("Delayed pulse time (μs)")
     plt.ylabel("Candidate count")
-    plt.title(
-        "Delayed pulse candidates\n"
-        "Initial exploratory ROOT scan"
-    )
+    plt.title("Delayed pulse candidates\n" "Initial exploratory ROOT scan")
     plt.grid(alpha=0.3)
     plt.legend()
     plt.tight_layout()
@@ -435,10 +385,7 @@ def main() -> None:
     root_files = find_root_files(ROOT_DATA_DIR)
 
     if not root_files:
-        raise FileNotFoundError(
-            f"No ROOT files were found in:\n"
-            f"{ROOT_DATA_DIR}"
-        )
+        raise FileNotFoundError(f"No ROOT files were found in:\n" f"{ROOT_DATA_DIR}")
 
     RESULTS_DIR.mkdir(
         parents=True,
@@ -449,28 +396,20 @@ def main() -> None:
     print("-" * 72)
 
     for index, file_path in enumerate(root_files):
-        size_mb = file_path.stat().st_size / (1024 ** 2)
+        size_mb = file_path.stat().st_size / (1024**2)
 
-        print(
-            f"[{index}] {file_path.name} "
-            f"({size_mb:.2f} MB)"
-        )
+        print(f"[{index}] {file_path.name} " f"({size_mb:.2f} MB)")
 
     print()
 
     try:
-        file_index = int(
-            input("Select ROOT file index: ")
-        )
+        file_index = int(input("Select ROOT file index: "))
     except ValueError as error:
-        raise ValueError(
-            "The ROOT file index must be a whole number."
-        ) from error
+        raise ValueError("The ROOT file index must be a whole number.") from error
 
     if file_index < 0 or file_index >= len(root_files):
         raise IndexError(
-            f"ROOT file index must be between 0 and "
-            f"{len(root_files) - 1}."
+            f"ROOT file index must be between 0 and " f"{len(root_files) - 1}."
         )
 
     selected_file = root_files[file_index]

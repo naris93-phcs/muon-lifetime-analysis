@@ -3,7 +3,6 @@ from pathlib import Path
 import awkward as ak
 import uproot
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 ROOT_DATA_DIR = PROJECT_ROOT / "data" / "root"
 
@@ -48,10 +47,7 @@ def inspect_root_file(file_path: Path) -> None:
             print("-" * 70)
 
             for branch_name, branch in tree.items():
-                print(
-                    f"{branch_name:<35} "
-                    f"typename={branch.typename}"
-                )
+                print(f"{branch_name:<35} " f"typename={branch.typename}")
 
             print()
 
@@ -98,15 +94,13 @@ def main() -> None:
     root_files = find_root_files(ROOT_DATA_DIR)
 
     if not root_files:
-        raise FileNotFoundError(
-            f"No ROOT files were found in:\n{ROOT_DATA_DIR}"
-        )
+        raise FileNotFoundError(f"No ROOT files were found in:\n{ROOT_DATA_DIR}")
 
     print("Available ROOT files:")
     print("-" * 70)
 
     for index, file_path in enumerate(root_files):
-        size_mb = file_path.stat().st_size / (1024 ** 2)
+        size_mb = file_path.stat().st_size / (1024**2)
         print(f"[{index}] {file_path.name} ({size_mb:.2f} MB)")
 
     print()

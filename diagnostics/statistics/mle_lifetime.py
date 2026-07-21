@@ -1,9 +1,8 @@
 import numpy as np
 import pandas as pd
 
-
-
 T_MIN_US = 0.80
+
 
 def estimate_truncated_lifetime(
     lifetimes_us: np.ndarray,
@@ -40,9 +39,7 @@ def estimate_truncated_lifetime(
 def main() -> None:
     """Run the truncated-exponential maximum-likelihood estimate."""
 
-    accepted = pd.read_csv(
-        "results/root_full_dataset/accepted_candidates.csv"
-    )
+    accepted = pd.read_csv("results/root_full_dataset/accepted_candidates.csv")
 
     lifetimes_us = accepted["decay_time_us"].to_numpy()
     bins = np.arange(0.8, 9.2, 0.2)
@@ -67,4 +64,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()    
+    main()

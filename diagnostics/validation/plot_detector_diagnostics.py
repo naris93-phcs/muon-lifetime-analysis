@@ -85,10 +85,7 @@ def plot_detector_event(
 
     if valid_candidates:
         candidate_indices = np.asarray(
-            [
-                search_start + candidate["index"]
-                for candidate in valid_candidates
-            ]
+            [search_start + candidate["index"] for candidate in valid_candidates]
         )
 
         ax.scatter(

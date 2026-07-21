@@ -1,28 +1,33 @@
-from src.analysis import make_histogram
-from src.pipeline import calculate_lifetimes
 from src.config import (
-    DATA_DIR,
-    FILE_PATTERN,
-    HISTOGRAM_PATH,
-    RESULTS_DIR,
+    FIT_MAX_US,
+    T_MIN_US,
+)
+from src.reporting import (
+    print_analysis_header,
+    print_analysis_report,
+)
+from src.workflow import (
+    find_root_files,
+    run_analysis,
 )
 
 
 def main() -> None:
-    """Run the complete muon lifetime analysis pipeline."""
+    """
+    Run the complete muon-lifetime analysis.
+    """
 
-    files = sorted(DATA_DIR.glob(FILE_PATTERN))
+    root_files = find_root_files()
 
-    print(f"Found {len(files)} files")
-
-    lifetimes = calculate_lifetimes(files)
-
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-
-    make_histogram(
-        lifetimes,
-        savepath=HISTOGRAM_PATH,
+    print_analysis_header(
+        root_file_count=len(root_files),
+        t_min_us=T_MIN_US,
+        t_max_us=FIT_MAX_US,
     )
+
+    analysis_run = run_analysis(root_files=root_files)
+
+    print_analysis_report(analysis_run)
 
 
 if __name__ == "__main__":

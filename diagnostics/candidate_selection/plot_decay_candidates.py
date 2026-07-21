@@ -6,27 +6,15 @@ import numpy as np
 import pandas as pd
 import uproot
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 ROOT_DATA_DIR = PROJECT_ROOT / "data" / "root"
 
-SCAN_RESULTS_DIR = (
-    PROJECT_ROOT
-    / "results"
-    / "root_candidate_scan"
-)
+SCAN_RESULTS_DIR = PROJECT_ROOT / "results" / "root_candidate_scan"
 
-CANDIDATES_CSV = (
-    SCAN_RESULTS_DIR
-    / "candidate_pulses.csv"
-)
+CANDIDATES_CSV = SCAN_RESULTS_DIR / "candidate_pulses.csv"
 
-OUTPUT_DIR = (
-    PROJECT_ROOT
-    / "results"
-    / "decay_candidate_plots"
-)
+OUTPUT_DIR = PROJECT_ROOT / "results" / "decay_candidate_plots"
 
 
 # ---------------------------------------------------------------------
@@ -72,9 +60,7 @@ def calculate_baseline(
     baseline_mask = time_us < BASELINE_END_US
 
     if not np.any(baseline_mask):
-        raise ValueError(
-            "No pre-trigger samples were found for baseline estimation."
-        )
+        raise ValueError("No pre-trigger samples were found for baseline estimation.")
 
     return float(np.median(signal[baseline_mask]))
 
@@ -121,25 +107,17 @@ def select_interesting_candidates(
     If an event has several peaks, the strongest one is kept.
     """
 
-    artifact_mask = (
-        (candidates["pulse_time_us"] >= ARTIFACT_START_US)
-        & (candidates["pulse_time_us"] <= ARTIFACT_END_US)
+    artifact_mask = (candidates["pulse_time_us"] >= ARTIFACT_START_US) & (
+        candidates["pulse_time_us"] <= ARTIFACT_END_US
     )
 
-    time_mask = (
-        (candidates["pulse_time_us"] >= MIN_CANDIDATE_TIME_US)
-        & (candidates["pulse_time_us"] <= MAX_CANDIDATE_TIME_US)
+    time_mask = (candidates["pulse_time_us"] >= MIN_CANDIDATE_TIME_US) & (
+        candidates["pulse_time_us"] <= MAX_CANDIDATE_TIME_US
     )
 
-    strength_mask = (
-        candidates["signal_to_noise"] >= MIN_SIGNAL_TO_NOISE
-    )
+    strength_mask = candidates["signal_to_noise"] >= MIN_SIGNAL_TO_NOISE
 
-    selected = candidates[
-        (~artifact_mask)
-        & time_mask
-        & strength_mask
-    ].copy()
+    selected = candidates[(~artifact_mask) & time_mask & strength_mask].copy()
 
     selected = selected.sort_values(
         by=[
@@ -157,9 +135,7 @@ def select_interesting_candidates(
         keep="first",
     )
 
-    selected = selected.head(
-        NUMBER_OF_EVENTS_TO_PLOT
-    )
+    selected = selected.head(NUMBER_OF_EVENTS_TO_PLOT)
 
     return selected.reset_index(drop=True)
 
@@ -194,14 +170,8 @@ def load_event(
     channel1 = ak.to_numpy(event["channel1"][0])
     channel2 = ak.to_numpy(event["channel2"][0])
 
-    if not (
-        len(time)
-        == len(channel1)
-        == len(channel2)
-    ):
-        raise ValueError(
-            f"Array lengths do not match in event {event_index}."
-        )
+    if not (len(time) == len(channel1) == len(channel2)):
+        raise ValueError(f"Array lengths do not match in event {event_index}.")
 
     return time, channel1, channel2
 
@@ -241,48 +211,29 @@ def plot_candidate_event(
 
     # Detector pulses are negative.
     # Inversion makes them appear as positive peaks.
-    channel1_inverted = -(
-        channel1 - channel1_baseline
-    )
+    channel1_inverted = -(channel1 - channel1_baseline)
 
-    channel2_inverted = -(
-        channel2 - channel2_baseline
-    )
+    channel2_inverted = -(channel2 - channel2_baseline)
 
-    post_trigger_mask = (
-        (time_us >= 0.15)
-        & (time_us <= 9.10)
-    )
+    post_trigger_mask = (time_us >= 0.15) & (time_us <= 9.10)
 
-    local_mask = (
-        (
-            time_us
-            >= candidate_time_us - LOCAL_WINDOW_BEFORE_US
-        )
-        & (
-            time_us
-            <= candidate_time_us + LOCAL_WINDOW_AFTER_US
-        )
+    local_mask = (time_us >= candidate_time_us - LOCAL_WINDOW_BEFORE_US) & (
+        time_us <= candidate_time_us + LOCAL_WINDOW_AFTER_US
     )
 
     if not np.any(local_mask):
-        raise ValueError(
-            "No samples were found around the candidate pulse."
-        )
+        raise ValueError("No samples were found around the candidate pulse.")
 
     OUTPUT_DIR.mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    output_path = (
-        OUTPUT_DIR
-        / (
-            f"{file_path.stem}"
-            f"_event_{event_index:05d}"
-            f"_{candidate_channel}"
-            f"_{candidate_time_us:.3f}us.png"
-        )
+    output_path = OUTPUT_DIR / (
+        f"{file_path.stem}"
+        f"_event_{event_index:05d}"
+        f"_{candidate_channel}"
+        f"_{candidate_time_us:.3f}us.png"
     )
 
     figure, axes = plt.subplots(
@@ -321,10 +272,7 @@ def plot_candidate_event(
         candidate_time_us,
         linestyle="--",
         linewidth=1.3,
-        label=(
-            f"Candidate: "
-            f"{candidate_time_us:.3f} μs"
-        ),
+        label=(f"Candidate: " f"{candidate_time_us:.3f} μs"),
     )
 
     axes[0].set_xlabel("Time (μs)")
@@ -373,12 +321,8 @@ def plot_candidate_event(
     )
 
     axes[1].set_xlabel("Time after trigger (μs)")
-    axes[1].set_ylabel(
-        "Baseline-subtracted inverted voltage (V)"
-    )
-    axes[1].set_title(
-        "Post-trigger waveform — negative pulses shown upward"
-    )
+    axes[1].set_ylabel("Baseline-subtracted inverted voltage (V)")
+    axes[1].set_title("Post-trigger waveform — negative pulses shown upward")
     axes[1].grid(alpha=0.3)
     axes[1].legend()
 
@@ -405,10 +349,7 @@ def plot_candidate_event(
         candidate_time_us,
         linestyle="--",
         linewidth=1.3,
-        label=(
-            f"{candidate_channel}: "
-            f"{candidate_time_us:.3f} μs"
-        ),
+        label=(f"{candidate_channel}: " f"{candidate_time_us:.3f} μs"),
     )
 
     axes[2].axhline(
@@ -418,12 +359,8 @@ def plot_candidate_event(
     )
 
     axes[2].set_xlabel("Time (μs)")
-    axes[2].set_ylabel(
-        "Baseline-subtracted inverted voltage (V)"
-    )
-    axes[2].set_title(
-        "Local zoom around delayed-pulse candidate"
-    )
+    axes[2].set_ylabel("Baseline-subtracted inverted voltage (V)")
+    axes[2].set_title("Local zoom around delayed-pulse candidate")
     axes[2].grid(alpha=0.3)
     axes[2].legend()
 
@@ -463,10 +400,7 @@ def save_selected_candidates(
 ) -> Path:
     """Save the final ranked list used for plotting."""
 
-    output_path = (
-        OUTPUT_DIR
-        / "selected_delayed_candidates.csv"
-    )
+    output_path = OUTPUT_DIR / "selected_delayed_candidates.csv"
 
     selected_candidates.to_csv(
         output_path,
@@ -487,9 +421,7 @@ def print_selected_candidates(
     print("=" * 82)
 
     if selected_candidates.empty:
-        print(
-            "No candidates passed the current selection criteria."
-        )
+        print("No candidates passed the current selection criteria.")
         print("=" * 82)
         return
 
@@ -504,9 +436,7 @@ def print_selected_candidates(
     ]
 
     print(
-        selected_candidates[
-            display_columns
-        ].to_string(
+        selected_candidates[display_columns].to_string(
             index=False,
             float_format=lambda value: f"{value:.4f}",
         )
@@ -518,32 +448,20 @@ def print_selected_candidates(
 def main() -> None:
     """Select and plot the strongest delayed-pulse candidates."""
 
-    root_files = find_root_files(
-        ROOT_DATA_DIR
-    )
+    root_files = find_root_files(ROOT_DATA_DIR)
 
     if not root_files:
         raise FileNotFoundError(
-            f"No ROOT acquisition files were found in:\n"
-            f"{ROOT_DATA_DIR}"
+            f"No ROOT acquisition files were found in:\n" f"{ROOT_DATA_DIR}"
         )
 
-    root_files_by_name = {
-        file_path.name: file_path
-        for file_path in root_files
-    }
+    root_files_by_name = {file_path.name: file_path for file_path in root_files}
 
-    candidates = load_candidate_table(
-        CANDIDATES_CSV
-    )
+    candidates = load_candidate_table(CANDIDATES_CSV)
 
-    selected_candidates = select_interesting_candidates(
-        candidates
-    )
+    selected_candidates = select_interesting_candidates(candidates)
 
-    print_selected_candidates(
-        selected_candidates
-    )
+    print_selected_candidates(selected_candidates)
 
     if selected_candidates.empty:
         return
@@ -553,9 +471,7 @@ def main() -> None:
         exist_ok=True,
     )
 
-    selected_csv_path = save_selected_candidates(
-        selected_candidates
-    )
+    selected_csv_path = save_selected_candidates(selected_candidates)
 
     print()
     print("Creating diagnostic plots...")
@@ -567,33 +483,20 @@ def main() -> None:
         file_name = str(candidate["file"])
 
         if file_name not in root_files_by_name:
-            print(
-                f"Skipping candidate: ROOT file not found: "
-                f"{file_name}"
-            )
+            print(f"Skipping candidate: ROOT file not found: " f"{file_name}")
             continue
 
         file_path = root_files_by_name[file_name]
 
-        event_index = int(
-            candidate["event_index"]
-        )
+        event_index = int(candidate["event_index"])
 
-        candidate_channel = str(
-            candidate["channel"]
-        )
+        candidate_channel = str(candidate["channel"])
 
-        candidate_time_us = float(
-            candidate["pulse_time_us"]
-        )
+        candidate_time_us = float(candidate["pulse_time_us"])
 
-        candidate_prominence_v = float(
-            candidate["prominence_v"]
-        )
+        candidate_prominence_v = float(candidate["prominence_v"])
 
-        signal_to_noise = float(
-            candidate["signal_to_noise"]
-        )
+        signal_to_noise = float(candidate["signal_to_noise"])
 
         print(
             f"[{row_number + 1}/"
@@ -613,36 +516,19 @@ def main() -> None:
                 signal_to_noise=signal_to_noise,
             )
         except Exception as error:
-            print(
-                f"Could not plot event {event_index}: "
-                f"{error}"
-            )
+            print(f"Could not plot event {event_index}: " f"{error}")
             continue
 
-        created_plots.append(
-            output_path
-        )
+        created_plots.append(output_path)
 
     print()
     print("=" * 82)
     print("CANDIDATE PLOTTING COMPLETE")
     print("=" * 82)
-    print(
-        f"Candidates selected: "
-        f"{len(selected_candidates)}"
-    )
-    print(
-        f"Plots created: "
-        f"{len(created_plots)}"
-    )
-    print(
-        f"Selected-candidate table:\n"
-        f"{selected_csv_path}"
-    )
-    print(
-        f"Plot directory:\n"
-        f"{OUTPUT_DIR}"
-    )
+    print(f"Candidates selected: " f"{len(selected_candidates)}")
+    print(f"Plots created: " f"{len(created_plots)}")
+    print(f"Selected-candidate table:\n" f"{selected_csv_path}")
+    print(f"Plot directory:\n" f"{OUTPUT_DIR}")
     print("=" * 82)
 
 

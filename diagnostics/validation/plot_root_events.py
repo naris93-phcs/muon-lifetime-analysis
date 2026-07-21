@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import uproot
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 ROOT_DATA_DIR = PROJECT_ROOT / "data" / "root"
 RESULTS_DIR = PROJECT_ROOT / "results" / "root_diagnostics"
@@ -37,8 +36,7 @@ def load_event(
 
         if event_index < 0 or event_index >= tree.num_entries:
             raise IndexError(
-                f"Event index must be between 0 and "
-                f"{tree.num_entries - 1}."
+                f"Event index must be between 0 and " f"{tree.num_entries - 1}."
             )
 
         event = tree.arrays(
@@ -52,12 +50,8 @@ def load_event(
     channel1 = ak.to_numpy(event["channel1"][0])
     channel2 = ak.to_numpy(event["channel2"][0])
 
-    if not (
-        len(time) == len(channel1) == len(channel2)
-    ):
-        raise ValueError(
-            "Time, channel1, and channel2 do not have the same length."
-        )
+    if not (len(time) == len(channel1) == len(channel2)):
+        raise ValueError("Time, channel1, and channel2 do not have the same length.")
 
     return time, channel1, channel2
 
@@ -76,9 +70,7 @@ def calculate_baseline(
     baseline_mask = time_microseconds < -0.1
 
     if not np.any(baseline_mask):
-        raise ValueError(
-            "No pre-trigger samples were found for baseline estimation."
-        )
+        raise ValueError("No pre-trigger samples were found for baseline estimation.")
 
     return float(np.median(signal[baseline_mask]))
 
@@ -94,10 +86,7 @@ def plot_full_event(
 
     time_microseconds = time * 1e6
 
-    output_path = (
-        RESULTS_DIR
-        / f"event_{event_index:05d}_full.png"
-    )
+    output_path = RESULTS_DIR / f"event_{event_index:05d}_full.png"
 
     plt.figure(figsize=(12, 6))
 
@@ -125,10 +114,7 @@ def plot_full_event(
 
     plt.xlabel("Time (μs)")
     plt.ylabel("Voltage (V)")
-    plt.title(
-        f"ROOT waveform event {event_index}\n"
-        f"{file_path.name}"
-    )
+    plt.title(f"ROOT waveform event {event_index}\n" f"{file_path.name}")
     plt.legend()
     plt.grid(alpha=0.3)
     plt.tight_layout()
@@ -151,10 +137,7 @@ def plot_separate_channels(
 
     time_microseconds = time * 1e6
 
-    output_path = (
-        RESULTS_DIR
-        / f"event_{event_index:05d}_separate.png"
-    )
+    output_path = RESULTS_DIR / f"event_{event_index:05d}_separate.png"
 
     figure, axes = plt.subplots(
         2,
@@ -196,10 +179,7 @@ def plot_separate_channels(
     axes[1].grid(alpha=0.3)
     axes[1].legend()
 
-    figure.suptitle(
-        f"ROOT waveform event {event_index}\n"
-        f"{file_path.name}"
-    )
+    figure.suptitle(f"ROOT waveform event {event_index}\n" f"{file_path.name}")
     figure.tight_layout()
 
     plt.savefig(output_path, dpi=150)
@@ -237,20 +217,12 @@ def plot_post_trigger_zoom(
     channel1_corrected = channel1 - channel1_baseline
     channel2_corrected = channel2 - channel2_baseline
 
-    zoom_mask = (
-        (time_microseconds >= 0.15)
-        & (time_microseconds <= 9.0)
-    )
+    zoom_mask = (time_microseconds >= 0.15) & (time_microseconds <= 9.0)
 
     if not np.any(zoom_mask):
-        raise ValueError(
-            "No samples were found inside the post-trigger zoom range."
-        )
+        raise ValueError("No samples were found inside the post-trigger zoom range.")
 
-    output_path = (
-        RESULTS_DIR
-        / f"event_{event_index:05d}_post_trigger.png"
-    )
+    output_path = RESULTS_DIR / f"event_{event_index:05d}_post_trigger.png"
 
     figure, axes = plt.subplots(
         2,
@@ -288,10 +260,7 @@ def plot_post_trigger_zoom(
     axes[1].set_title("Channel 2 post-trigger")
     axes[1].grid(alpha=0.3)
 
-    figure.suptitle(
-        f"Post-trigger zoom — event {event_index}\n"
-        f"{file_path.name}"
-    )
+    figure.suptitle(f"Post-trigger zoom — event {event_index}\n" f"{file_path.name}")
     figure.tight_layout()
 
     plt.savefig(output_path, dpi=150)
@@ -314,13 +283,9 @@ def print_event_summary(
     sample_intervals = np.diff(time)
 
     if len(sample_intervals) == 0:
-        raise ValueError(
-            "The waveform does not contain enough samples."
-        )
+        raise ValueError("The waveform does not contain enough samples.")
 
-    mean_sample_interval_ps = (
-        np.mean(sample_intervals) * 1e12
-    )
+    mean_sample_interval_ps = np.mean(sample_intervals) * 1e12
 
     channel1_baseline = calculate_baseline(
         time_microseconds,
@@ -342,10 +307,7 @@ def print_event_summary(
         f"{time_microseconds[0]:.3f} to "
         f"{time_microseconds[-1]:.3f} μs"
     )
-    print(
-        f"Sample interval: "
-        f"{mean_sample_interval_ps:.3f} ps"
-    )
+    print(f"Sample interval: " f"{mean_sample_interval_ps:.3f} ps")
     print()
     print(f"CH1 baseline: {channel1_baseline:.6f} V")
     print(f"CH1 minimum:  {channel1.min():.6f} V")
@@ -364,9 +326,7 @@ def main() -> None:
     root_files = find_root_files(ROOT_DATA_DIR)
 
     if not root_files:
-        raise FileNotFoundError(
-            f"No ROOT files were found in:\n{ROOT_DATA_DIR}"
-        )
+        raise FileNotFoundError(f"No ROOT files were found in:\n{ROOT_DATA_DIR}")
 
     RESULTS_DIR.mkdir(
         parents=True,
@@ -377,30 +337,20 @@ def main() -> None:
     print("-" * 70)
 
     for index, file_path in enumerate(root_files):
-        size_mb = file_path.stat().st_size / (1024 ** 2)
-        print(
-            f"[{index}] {file_path.name} "
-            f"({size_mb:.2f} MB)"
-        )
+        size_mb = file_path.stat().st_size / (1024**2)
+        print(f"[{index}] {file_path.name} " f"({size_mb:.2f} MB)")
 
     print()
 
     try:
-        file_index = int(
-            input("Select ROOT file index: ")
-        )
-        event_index = int(
-            input("Select event index: ")
-        )
+        file_index = int(input("Select ROOT file index: "))
+        event_index = int(input("Select event index: "))
     except ValueError as error:
-        raise ValueError(
-            "Both selections must be whole numbers."
-        ) from error
+        raise ValueError("Both selections must be whole numbers.") from error
 
     if file_index < 0 or file_index >= len(root_files):
         raise IndexError(
-            f"ROOT file index must be between 0 and "
-            f"{len(root_files) - 1}."
+            f"ROOT file index must be between 0 and " f"{len(root_files) - 1}."
         )
 
     selected_file = root_files[file_index]

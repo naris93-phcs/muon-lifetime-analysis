@@ -5,3 +5,4 @@ results/
 # Raw ROOT acquisition files
 data/root/
 *.root
+*.py[cod]

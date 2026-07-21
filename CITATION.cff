@@ -1,0 +1,38 @@
+cff-version: 1.2.0
+
+title: "Cosmic Muon Lifetime Analysis"
+
+message: >
+  If you use this software in your research, please cite it using the metadata below.
+
+type: software
+
+authors:
+  - family-names: "Naris"
+    given-names: "Dimitris"
+
+repository-code: "https://github.com/naris93-phcs/muon-lifetime-analysis"
+
+abstract: >
+  A modular scientific software package for analysing waveform data from
+  scintillation detectors, reconstructing stopped-muon decay events, validating
+  detector performance and estimating the atmospheric cosmic-muon lifetime
+  through maximum-likelihood inference.
+
+keywords:
+  - particle physics
+  - cosmic rays
+  - muon lifetime
+  - scintillation detector
+  - scientific software
+  - ROOT
+  - Python
+  - data analysis
+  - maximum likelihood
+  - waveform analysis
+
+license: MIT
+
+version: "3.0"
+
+date-released: "2026-07-22"

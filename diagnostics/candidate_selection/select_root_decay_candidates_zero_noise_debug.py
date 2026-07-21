@@ -11,11 +11,7 @@ DEBUG_PRINTED = False
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 ROOT_DATA_DIR = PROJECT_ROOT / "data" / "root"
 
-RESULTS_DIR = (
-    PROJECT_ROOT
-    / "results"
-    / "root_decay_selection"
-)
+RESULTS_DIR = PROJECT_ROOT / "results" / "root_decay_selection"
 
 ACCEPTED_CSV = RESULTS_DIR / "accepted_candidates.csv"
 REJECTED_CSV = RESULTS_DIR / "rejected_candidates.csv"
@@ -79,7 +75,7 @@ CHUNK_SIZE = 100
 
 # For a quick test, set an integer such as 500.
 # Leave as None to scan the complete selected ROOT file.
-MAX_EVENTS = None
+MAX_EVENTS = 20
 
 
 def find_root_files(directory: Path) -> list[Path]:
@@ -119,9 +115,7 @@ def baseline_and_noise(
     mask = time_us < BASELINE_END_US
 
     if not np.any(mask):
-        raise ValueError(
-            "No samples were found in the pre-trigger baseline region."
-        )
+        raise ValueError("No samples were found in the pre-trigger baseline region.")
 
     baseline_samples = signal[mask]
 
@@ -135,6 +129,7 @@ def baseline_and_noise(
         print("Samples:", len(baseline_samples))
         print("Unique values:", len(np.unique(baseline_samples)))
         print("First 20 values:", baseline_samples[:20])
+
     noise_std = robust_noise_std(baseline_samples)
 
     return baseline, noise_std
@@ -162,10 +157,7 @@ def maximum_in_window(
 ) -> float:
     """Return the maximum signal value inside a time window."""
 
-    mask = (
-        (time_us >= start_us)
-        & (time_us <= end_us)
-    )
+    mask = (time_us >= start_us) & (time_us <= end_us)
 
     if not np.any(mask):
         return float("nan")
@@ -219,10 +211,7 @@ def find_delayed_channel2_peaks(
 ) -> list[dict]:
     """Find delayed pulse candidates in channel 2."""
 
-    search_mask = (
-        (time_us >= DECAY_SEARCH_START_US)
-        & (time_us <= DECAY_SEARCH_END_US)
-    )
+    search_mask = (time_us >= DECAY_SEARCH_START_US) & (time_us <= DECAY_SEARCH_END_US)
 
     search_time = time_us[search_mask]
     search_signal = channel2_inverted[search_mask]
@@ -230,9 +219,7 @@ def find_delayed_channel2_peaks(
     if len(search_time) < 3:
         return []
 
-    sample_interval_us = float(
-        np.median(np.diff(search_time))
-    )
+    sample_interval_us = float(np.median(np.diff(search_time)))
 
     if sample_interval_us <= 0:
         raise ValueError("Invalid waveform sample interval.")
@@ -241,9 +228,7 @@ def find_delayed_channel2_peaks(
 
     minimum_distance_samples = max(
         1,
-        int(round(
-            MIN_PEAK_DISTANCE_NS / sample_interval_ns
-        )),
+        int(round(MIN_PEAK_DISTANCE_NS / sample_interval_ns)),
     )
 
     minimum_width_samples = max(
@@ -272,21 +257,11 @@ def find_delayed_channel2_peaks(
 
     for peak_number, peak_index in enumerate(peaks):
         candidate = {
-            "decay_time_us": float(
-                search_time[peak_index]
-            ),
-            "channel2_amplitude_v": float(
-                search_signal[peak_index]
-            ),
-            "channel2_prominence_v": float(
-                properties["prominences"][peak_number]
-            ),
-            "channel2_width_ns": float(
-                widths[peak_number] * sample_interval_ns
-            ),
-            "channel2_snr": float(
-                search_signal[peak_index] / channel2_noise
-            ),
+            "decay_time_us": float(search_time[peak_index]),
+            "channel2_amplitude_v": float(search_signal[peak_index]),
+            "channel2_prominence_v": float(properties["prominences"][peak_number]),
+            "channel2_width_ns": float(widths[peak_number] * sample_interval_ns),
+            "channel2_snr": float(search_signal[peak_index] / channel2_noise),
         }
 
         candidates.append(candidate)
@@ -316,17 +291,11 @@ def evaluate_channel1_veto(
     possible second through-going particle or accidental coincidence.
     """
 
-    half_window_us = (
-        COINCIDENCE_WINDOW_NS / 1000.0
-    )
+    half_window_us = COINCIDENCE_WINDOW_NS / 1000.0
 
-    window_start = (
-        channel2_candidate_time_us - half_window_us
-    )
+    window_start = channel2_candidate_time_us - half_window_us
 
-    window_end = (
-        channel2_candidate_time_us + half_window_us
-    )
+    window_end = channel2_candidate_time_us + half_window_us
 
     channel1_amplitude = maximum_in_window(
         time_us,
@@ -338,9 +307,7 @@ def evaluate_channel1_veto(
     if not np.isfinite(channel1_amplitude):
         channel1_amplitude = 0.0
 
-    channel1_snr = (
-        channel1_amplitude / channel1_noise
-    )
+    channel1_snr = channel1_amplitude / channel1_noise
 
     amplitude_ratio = (
         channel1_amplitude / channel2_candidate_amplitude_v
@@ -348,13 +315,9 @@ def evaluate_channel1_veto(
         else float("inf")
     )
 
-    veto_by_sigma = (
-        channel1_snr >= CH1_VETO_SIGMA
-    )
+    veto_by_sigma = channel1_snr >= CH1_VETO_SIGMA
 
-    veto_by_ratio = (
-        amplitude_ratio >= CH1_TO_CH2_MAX_RATIO
-    )
+    veto_by_ratio = amplitude_ratio >= CH1_TO_CH2_MAX_RATIO
 
     vetoed = veto_by_sigma and veto_by_ratio
 
@@ -377,11 +340,7 @@ def analyze_event(
 ) -> list[dict]:
     """Analyze one complete acquisition event."""
 
-    if not (
-        len(time)
-        == len(channel1)
-        == len(channel2)
-    ):
+    if not (len(time) == len(channel1) == len(channel2)):
         return [
             {
                 "file": file_name,
@@ -424,16 +383,6 @@ def analyze_event(
         channel1_noise,
         channel2_noise,
     )
-    if event_index < 20:
-        print(
-            event_index,
-            trigger_valid,
-            channel1_trigger_amplitude,
-            channel2_trigger_amplitude,
-            channel1_noise,
-            channel2_noise,
-        )
-
     if not trigger_valid:
         return [
             {
@@ -441,10 +390,8 @@ def analyze_event(
                 "event_index": event_index,
                 "accepted": False,
                 "rejection_reason": "invalid_initial_trigger",
-                "channel1_trigger_amplitude_v":
-                    channel1_trigger_amplitude,
-                "channel2_trigger_amplitude_v":
-                    channel2_trigger_amplitude,
+                "channel1_trigger_amplitude_v": channel1_trigger_amplitude,
+                "channel2_trigger_amplitude_v": channel2_trigger_amplitude,
                 "channel1_noise_std_v": channel1_noise,
                 "channel2_noise_std_v": channel2_noise,
             }
@@ -466,21 +413,13 @@ def analyze_event(
             time_us=time_us,
             channel1_inverted=channel1_inverted,
             channel1_noise=channel1_noise,
-            channel2_candidate_time_us=(
-                candidate["decay_time_us"]
-            ),
-            channel2_candidate_amplitude_v=(
-                candidate["channel2_amplitude_v"]
-            ),
+            channel2_candidate_time_us=(candidate["decay_time_us"]),
+            channel2_candidate_amplitude_v=(candidate["channel2_amplitude_v"]),
         )
 
         accepted = not veto["vetoed"]
 
-        rejection_reason = (
-            ""
-            if accepted
-            else "simultaneous_channel1_pulse"
-        )
+        rejection_reason = "" if accepted else "simultaneous_channel1_pulse"
 
         result = {
             "file": file_name,
@@ -488,32 +427,19 @@ def analyze_event(
             "accepted": accepted,
             "rejection_reason": rejection_reason,
             "decay_time_us": candidate["decay_time_us"],
-            "channel2_amplitude_v":
-                candidate["channel2_amplitude_v"],
-            "channel2_prominence_v":
-                candidate["channel2_prominence_v"],
-            "channel2_width_ns":
-                candidate["channel2_width_ns"],
-            "channel2_snr":
-                candidate["channel2_snr"],
-            "channel1_veto_amplitude_v":
-                veto["channel1_veto_amplitude_v"],
-            "channel1_veto_snr":
-                veto["channel1_veto_snr"],
-            "channel1_to_channel2_ratio":
-                veto["channel1_to_channel2_ratio"],
-            "channel1_trigger_amplitude_v":
-                channel1_trigger_amplitude,
-            "channel2_trigger_amplitude_v":
-                channel2_trigger_amplitude,
-            "channel1_baseline_v":
-                channel1_baseline,
-            "channel2_baseline_v":
-                channel2_baseline,
-            "channel1_noise_std_v":
-                channel1_noise,
-            "channel2_noise_std_v":
-                channel2_noise,
+            "channel2_amplitude_v": candidate["channel2_amplitude_v"],
+            "channel2_prominence_v": candidate["channel2_prominence_v"],
+            "channel2_width_ns": candidate["channel2_width_ns"],
+            "channel2_snr": candidate["channel2_snr"],
+            "channel1_veto_amplitude_v": veto["channel1_veto_amplitude_v"],
+            "channel1_veto_snr": veto["channel1_veto_snr"],
+            "channel1_to_channel2_ratio": veto["channel1_to_channel2_ratio"],
+            "channel1_trigger_amplitude_v": channel1_trigger_amplitude,
+            "channel2_trigger_amplitude_v": channel2_trigger_amplitude,
+            "channel1_baseline_v": channel1_baseline,
+            "channel2_baseline_v": channel2_baseline,
+            "channel1_noise_std_v": channel1_noise,
+            "channel2_noise_std_v": channel2_noise,
         }
 
         results.append(result)
@@ -558,10 +484,7 @@ def scan_root_file(
                 total_events,
             )
 
-            print(
-                f"Reading events "
-                f"{chunk_start}–{chunk_stop - 1}"
-            )
+            print(f"Reading events " f"{chunk_start}–{chunk_stop - 1}")
 
             arrays = tree.arrays(
                 [
@@ -574,28 +497,16 @@ def scan_root_file(
                 library="ak",
             )
 
-            number_in_chunk = len(
-                arrays["time"]
-            )
+            number_in_chunk = len(arrays["time"])
 
-            for local_index in range(
-                number_in_chunk
-            ):
-                event_index = (
-                    chunk_start + local_index
-                )
+            for local_index in range(number_in_chunk):
+                event_index = chunk_start + local_index
 
-                time = ak.to_numpy(
-                    arrays["time"][local_index]
-                )
+                time = ak.to_numpy(arrays["time"][local_index])
 
-                channel1 = ak.to_numpy(
-                    arrays["channel1"][local_index]
-                )
+                channel1 = ak.to_numpy(arrays["channel1"][local_index])
 
-                channel2 = ak.to_numpy(
-                    arrays["channel2"][local_index]
-                )
+                channel2 = ak.to_numpy(arrays["channel2"][local_index])
 
                 try:
                     event_results = analyze_event(
@@ -606,15 +517,10 @@ def scan_root_file(
                         channel2=channel2,
                     )
                 except Exception as error:
-                    print(
-                        f"Skipping event {event_index}: "
-                        f"{error}"
-                    )
+                    print(f"Skipping event {event_index}: " f"{error}")
                     continue
 
-                all_results.extend(
-                    event_results
-                )
+                all_results.extend(event_results)
 
     return pd.DataFrame(all_results)
 
@@ -683,35 +589,22 @@ def plot_selection_example(
         channel2_baseline,
     )
 
-    local_mask = (
-        (time_us >= decay_time_us - 0.50)
-        & (time_us <= decay_time_us + 0.80)
-    )
+    local_mask = (time_us >= decay_time_us - 0.50) & (time_us <= decay_time_us + 0.80)
 
-    post_trigger_mask = (
-        (time_us >= 0.15)
-        & (time_us <= 9.10)
-    )
+    post_trigger_mask = (time_us >= 0.15) & (time_us <= 9.10)
 
     output_directory.mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    status = (
-        "accepted"
-        if bool(row["accepted"])
-        else "rejected"
-    )
+    status = "accepted" if bool(row["accepted"]) else "rejected"
 
-    output_path = (
-        output_directory
-        / (
-            f"{file_path.stem}"
-            f"_event_{event_index:05d}"
-            f"_{status}"
-            f"_{decay_time_us:.3f}us.png"
-        )
+    output_path = output_directory / (
+        f"{file_path.stem}"
+        f"_event_{event_index:05d}"
+        f"_{status}"
+        f"_{decay_time_us:.3f}us.png"
     )
 
     figure, axes = plt.subplots(
@@ -789,9 +682,7 @@ def plot_selection_example(
     axes[1].grid(alpha=0.3)
     axes[1].legend()
 
-    rejection_reason = str(
-        row.get("rejection_reason", "")
-    )
+    rejection_reason = str(row.get("rejection_reason", ""))
 
     figure.suptitle(
         (
@@ -800,18 +691,12 @@ def plot_selection_example(
             f"CH2 SNR = {row['channel2_snr']:.1f} | "
             f"CH1 veto SNR = {row['channel1_veto_snr']:.1f} | "
             f"ratio = {row['channel1_to_channel2_ratio']:.3f}"
-            + (
-                f" | reason: {rejection_reason}"
-                if rejection_reason
-                else ""
-            )
+            + (f" | reason: {rejection_reason}" if rejection_reason else "")
         ),
         fontsize=12,
     )
 
-    figure.tight_layout(
-        rect=[0, 0, 1, 0.94]
-    )
+    figure.tight_layout(rect=[0, 0, 1, 0.94])
 
     plt.savefig(
         output_path,
@@ -844,10 +729,7 @@ def save_decay_histogram(
 
     plt.xlabel("Delayed-pulse time (μs)")
     plt.ylabel("Accepted candidate count")
-    plt.title(
-        "Decay-like delayed pulses\n"
-        "Initial physics-aware selection"
-    )
+    plt.title("Decay-like delayed pulses\n" "Initial physics-aware selection")
     plt.grid(alpha=0.3)
     plt.tight_layout()
 
@@ -874,9 +756,11 @@ def print_summary(
     print("PHYSICS-AWARE SELECTION SUMMARY")
     print("=" * 78)
 
-    delayed_results = all_results[
-        all_results["decay_time_us"].notna()
-    ] if "decay_time_us" in all_results else pd.DataFrame()
+    delayed_results = (
+        all_results[all_results["decay_time_us"].notna()]
+        if "decay_time_us" in all_results
+        else pd.DataFrame()
+    )
 
     print(
         f"Events with delayed CH2 candidates: "
@@ -885,24 +769,14 @@ def print_summary(
         else "Events with delayed CH2 candidates: 0"
     )
 
-    print(
-        f"Accepted decay-like candidates: "
-        f"{len(accepted)}"
-    )
+    print(f"Accepted decay-like candidates: " f"{len(accepted)}")
 
-    print(
-        f"Rejected by CH1 coincidence veto: "
-        f"{len(rejected)}"
-    )
+    print(f"Rejected by CH1 coincidence veto: " f"{len(rejected)}")
 
     if not accepted.empty:
         print()
         print("Accepted decay-time summary:")
-        print(
-            accepted["decay_time_us"]
-            .describe()
-            .round(4)
-        )
+        print(accepted["decay_time_us"].describe().round(4))
 
         print()
         print("Strongest accepted candidates:")
@@ -960,13 +834,9 @@ def print_summary(
     ]
 
     for event_index in known_events:
-        accepted_match = accepted[
-            accepted["event_index"] == event_index
-        ]
+        accepted_match = accepted[accepted["event_index"] == event_index]
 
-        rejected_match = rejected[
-            rejected["event_index"] == event_index
-        ]
+        rejected_match = rejected[rejected["event_index"] == event_index]
 
         if not accepted_match.empty:
             status = "ACCEPTED"
@@ -975,9 +845,7 @@ def print_summary(
         else:
             status = "NO DELAYED CH2 CANDIDATE"
 
-        print(
-            f"Event {event_index:4d}: {status}"
-        )
+        print(f"Event {event_index:4d}: {status}")
 
     print("=" * 78)
 
@@ -985,15 +853,10 @@ def print_summary(
 def main() -> None:
     """Run physics-aware selection on one ROOT acquisition file."""
 
-    root_files = find_root_files(
-        ROOT_DATA_DIR
-    )
+    root_files = find_root_files(ROOT_DATA_DIR)
 
     if not root_files:
-        raise FileNotFoundError(
-            f"No ROOT files were found in:\n"
-            f"{ROOT_DATA_DIR}"
-        )
+        raise FileNotFoundError(f"No ROOT files were found in:\n" f"{ROOT_DATA_DIR}")
 
     RESULTS_DIR.mkdir(
         parents=True,
@@ -1004,31 +867,20 @@ def main() -> None:
     print("-" * 78)
 
     for index, file_path in enumerate(root_files):
-        size_mb = (
-            file_path.stat().st_size
-            / (1024 ** 2)
-        )
+        size_mb = file_path.stat().st_size / (1024**2)
 
-        print(
-            f"[{index}] {file_path.name} "
-            f"({size_mb:.2f} MB)"
-        )
+        print(f"[{index}] {file_path.name} " f"({size_mb:.2f} MB)")
 
     print()
 
     try:
-        file_index = int(
-            input("Select ROOT file index: ")
-        )
+        file_index = int(input("Select ROOT file index: "))
     except ValueError as error:
-        raise ValueError(
-            "ROOT file index must be a whole number."
-        ) from error
+        raise ValueError("ROOT file index must be a whole number.") from error
 
     if file_index < 0 or file_index >= len(root_files):
         raise IndexError(
-            f"ROOT file index must be between "
-            f"0 and {len(root_files) - 1}."
+            f"ROOT file index must be between " f"0 and {len(root_files) - 1}."
         )
 
     selected_file = root_files[file_index]
@@ -1037,9 +889,7 @@ def main() -> None:
     print(f"Analyzing: {selected_file.name}")
     print("-" * 78)
 
-    all_results = scan_root_file(
-        selected_file
-    )
+    all_results = scan_root_file(selected_file)
 
     if all_results.empty:
         print("No analysis results were produced.")
@@ -1049,17 +899,11 @@ def main() -> None:
         print("No delayed pulse candidates were found.")
         return
 
-    candidate_results = all_results[
-        all_results["decay_time_us"].notna()
-    ].copy()
+    candidate_results = all_results[all_results["decay_time_us"].notna()].copy()
 
-    accepted = candidate_results[
-        candidate_results["accepted"] == True
-    ].copy()
+    accepted = candidate_results[candidate_results["accepted"] == True].copy()
 
-    rejected = candidate_results[
-        candidate_results["accepted"] == False
-    ].copy()
+    rejected = candidate_results[candidate_results["accepted"] == False].copy()
 
     accepted = accepted.sort_values(
         "channel2_prominence_v",
@@ -1087,16 +931,12 @@ def main() -> None:
         rejected,
     )
 
-    save_decay_histogram(
-        accepted
-    )
+    save_decay_histogram(accepted)
 
     print()
     print("Creating accepted-event plots...")
 
-    for _, row in accepted.head(
-        NUMBER_OF_ACCEPTED_PLOTS
-    ).iterrows():
+    for _, row in accepted.head(NUMBER_OF_ACCEPTED_PLOTS).iterrows():
         plot_selection_example(
             selected_file,
             row,
@@ -1105,9 +945,7 @@ def main() -> None:
 
     print("Creating rejected-event plots...")
 
-    for _, row in rejected.head(
-        NUMBER_OF_REJECTED_PLOTS
-    ).iterrows():
+    for _, row in rejected.head(NUMBER_OF_REJECTED_PLOTS).iterrows():
         plot_selection_example(
             selected_file,
             row,

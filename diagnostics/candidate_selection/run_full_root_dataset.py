@@ -6,36 +6,21 @@ import uproot
 
 from diagnostics import select_root_decay_candidates as selector
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 ROOT_DATA_DIR = PROJECT_ROOT / "data" / "root"
 
-RESULTS_DIR = (
-    PROJECT_ROOT
-    / "results"
-    / "root_full_dataset"
-)
+RESULTS_DIR = PROJECT_ROOT / "results" / "root_full_dataset"
 
-SELECTION_RESULTS_CSV = (
-    RESULTS_DIR / "selection_results.csv"
-)
+SELECTION_RESULTS_CSV = RESULTS_DIR / "selection_results.csv"
 
-ACCEPTED_CSV = (
-    RESULTS_DIR / "accepted_candidates.csv"
-)
+ACCEPTED_CSV = RESULTS_DIR / "accepted_candidates.csv"
 
-REJECTED_CSV = (
-    RESULTS_DIR / "rejected_candidates.csv"
-)
+REJECTED_CSV = RESULTS_DIR / "rejected_candidates.csv"
 
-FILE_SUMMARY_CSV = (
-    RESULTS_DIR / "file_summary.csv"
-)
+FILE_SUMMARY_CSV = RESULTS_DIR / "file_summary.csv"
 
-RUN_SUMMARY_TXT = (
-    RESULTS_DIR / "run_summary.txt"
-)
+RUN_SUMMARY_TXT = RESULTS_DIR / "run_summary.txt"
 
 
 def get_total_entries(file_path: Path) -> int:
@@ -53,28 +38,19 @@ def split_candidate_results(
     Separate delayed-pulse candidates into accepted and rejected sets.
     """
 
-    if (
-        results.empty
-        or "decay_time_us" not in results.columns
-    ):
+    if results.empty or "decay_time_us" not in results.columns:
         empty = pd.DataFrame()
         return empty, empty, empty
 
-    candidates = results[
-        results["decay_time_us"].notna()
-    ].copy()
+    candidates = results[results["decay_time_us"].notna()].copy()
 
     if candidates.empty:
         empty = pd.DataFrame()
         return candidates, empty, empty
 
-    accepted = candidates[
-        candidates["accepted"] == True
-    ].copy()
+    accepted = candidates[candidates["accepted"] == True].copy()
 
-    rejected = candidates[
-        candidates["accepted"] == False
-    ].copy()
+    rejected = candidates[candidates["accepted"] == False].copy()
 
     return candidates, accepted, rejected
 
@@ -84,11 +60,7 @@ def concatenate_frames(
 ) -> pd.DataFrame:
     """Safely concatenate non-empty DataFrames."""
 
-    non_empty_frames = [
-        frame
-        for frame in frames
-        if not frame.empty
-    ]
+    non_empty_frames = [frame for frame in frames if not frame.empty]
 
     if not non_empty_frames:
         return pd.DataFrame()
@@ -111,17 +83,11 @@ def save_current_results(
     This prevents losing the completed analysis if a later file fails.
     """
 
-    all_selection_results = concatenate_frames(
-        selection_frames
-    )
+    all_selection_results = concatenate_frames(selection_frames)
 
-    all_accepted = concatenate_frames(
-        accepted_frames
-    )
+    all_accepted = concatenate_frames(accepted_frames)
 
-    all_rejected = concatenate_frames(
-        rejected_frames
-    )
+    all_rejected = concatenate_frames(rejected_frames)
 
     if not all_selection_results.empty:
         all_selection_results.to_csv(
@@ -166,35 +132,23 @@ def create_run_summary(
 
     summary_df = pd.DataFrame(file_summaries)
 
-    successful = summary_df[
-        summary_df["status"] == "completed"
-    ]
+    successful = summary_df[summary_df["status"] == "completed"]
 
-    failed = summary_df[
-        summary_df["status"] == "failed"
-    ]
+    failed = summary_df[summary_df["status"] == "failed"]
 
-    total_events = int(
-        successful["total_events"].sum()
-    )
+    total_events = int(successful["total_events"].sum())
 
-    total_candidates = int(
-        successful["delayed_candidates"].sum()
-    )
+    total_candidates = int(successful["delayed_candidates"].sum())
 
     total_accepted = len(accepted)
     total_rejected = len(rejected)
 
     acceptance_all_events = (
-        100.0 * total_accepted / total_events
-        if total_events > 0
-        else 0.0
+        100.0 * total_accepted / total_events if total_events > 0 else 0.0
     )
 
     acceptance_candidates = (
-        100.0 * total_accepted / total_candidates
-        if total_candidates > 0
-        else 0.0
+        100.0 * total_accepted / total_candidates if total_candidates > 0 else 0.0
     )
 
     lines = [
@@ -211,14 +165,8 @@ def create_run_summary(
         f"Accepted decay candidates:   {total_accepted}",
         f"Rejected by CH1 veto:        {total_rejected}",
         "",
-        (
-            "Accepted / all events:      "
-            f"{acceptance_all_events:.4f}%"
-        ),
-        (
-            "Accepted / candidates:      "
-            f"{acceptance_candidates:.4f}%"
-        ),
+        ("Accepted / all events:      " f"{acceptance_all_events:.4f}%"),
+        ("Accepted / candidates:      " f"{acceptance_candidates:.4f}%"),
         "",
     ]
 
@@ -237,9 +185,7 @@ def create_run_summary(
             ]
         )
 
-    lines.append(
-        f"Elapsed time:                {elapsed_seconds / 60:.2f} min"
-    )
+    lines.append(f"Elapsed time:                {elapsed_seconds / 60:.2f} min")
 
     if not failed.empty:
         lines.extend(
@@ -250,9 +196,7 @@ def create_run_summary(
         )
 
         for _, row in failed.iterrows():
-            lines.append(
-                f"- {row['file']}: {row['error']}"
-            )
+            lines.append(f"- {row['file']}: {row['error']}")
 
     lines.extend(
         [
@@ -272,15 +216,10 @@ def main() -> None:
         exist_ok=True,
     )
 
-    root_files = selector.find_root_files(
-        ROOT_DATA_DIR
-    )
+    root_files = selector.find_root_files(ROOT_DATA_DIR)
 
     if not root_files:
-        raise FileNotFoundError(
-            f"No ROOT files were found in:\n"
-            f"{ROOT_DATA_DIR}"
-        )
+        raise FileNotFoundError(f"No ROOT files were found in:\n" f"{ROOT_DATA_DIR}")
 
     print()
     print("=" * 78)
@@ -296,10 +235,7 @@ def main() -> None:
         root_files,
         start=1,
     ):
-        size_mb = (
-            file_path.stat().st_size
-            / (1024 ** 2)
-        )
+        size_mb = file_path.stat().st_size / (1024**2)
 
         print(
             f"[{index:02d}/{len(root_files):02d}] "
@@ -308,9 +244,7 @@ def main() -> None:
         )
 
     print()
-    input(
-        "Press ENTER to launch the full dataset analysis..."
-    )
+    input("Press ENTER to launch the full dataset analysis...")
 
     selection_frames = []
     accepted_frames = []
@@ -326,50 +260,33 @@ def main() -> None:
         print()
         print("#" * 78)
         print(
-            f"[{file_number:02d}/{len(root_files):02d}] "
-            f"ANALYZING {file_path.name}"
+            f"[{file_number:02d}/{len(root_files):02d}] " f"ANALYZING {file_path.name}"
         )
         print("#" * 78)
 
         file_start = perf_counter()
 
         try:
-            total_events = get_total_entries(
-                file_path
-            )
+            total_events = get_total_entries(file_path)
 
-            results = selector.scan_root_file(
-                file_path
-            )
+            results = selector.scan_root_file(file_path)
 
             (
                 candidates,
                 accepted,
                 rejected,
-            ) = split_candidate_results(
-                results
-            )
+            ) = split_candidate_results(results)
 
-            selection_frames.append(
-                results
-            )
+            selection_frames.append(results)
 
-            accepted_frames.append(
-                accepted
-            )
+            accepted_frames.append(accepted)
 
-            rejected_frames.append(
-                rejected
-            )
+            rejected_frames.append(rejected)
 
-            elapsed_file_seconds = (
-                perf_counter() - file_start
-            )
+            elapsed_file_seconds = perf_counter() - file_start
 
             acceptance_percent = (
-                100.0 * len(accepted) / total_events
-                if total_events > 0
-                else 0.0
+                100.0 * len(accepted) / total_events if total_events > 0 else 0.0
             )
 
             file_summary = {
@@ -384,49 +301,26 @@ def main() -> None:
                 "error": "",
             }
 
-            file_summaries.append(
-                file_summary
-            )
+            file_summaries.append(file_summary)
 
             print()
             print("-" * 78)
-            print(
-                f"Completed: {file_path.name}"
-            )
-            print(
-                f"Events: {total_events}"
-            )
-            print(
-                f"Delayed candidates: {len(candidates)}"
-            )
-            print(
-                f"Accepted: {len(accepted)}"
-            )
-            print(
-                f"Rejected: {len(rejected)}"
-            )
-            print(
-                f"Acceptance: {acceptance_percent:.4f}%"
-            )
-            print(
-                f"File time: "
-                f"{elapsed_file_seconds / 60:.2f} min"
-            )
+            print(f"Completed: {file_path.name}")
+            print(f"Events: {total_events}")
+            print(f"Delayed candidates: {len(candidates)}")
+            print(f"Accepted: {len(accepted)}")
+            print(f"Rejected: {len(rejected)}")
+            print(f"Acceptance: {acceptance_percent:.4f}%")
+            print(f"File time: " f"{elapsed_file_seconds / 60:.2f} min")
             print("-" * 78)
 
         except Exception as error:
-            elapsed_file_seconds = (
-                perf_counter() - file_start
-            )
+            elapsed_file_seconds = perf_counter() - file_start
 
             print()
             print("!" * 78)
-            print(
-                f"FAILED: {file_path.name}"
-            )
-            print(
-                f"Reason: {error}"
-            )
+            print(f"FAILED: {file_path.name}")
+            print(f"Reason: {error}")
             print("!" * 78)
 
             file_summaries.append(
@@ -450,21 +344,13 @@ def main() -> None:
             file_summaries=file_summaries,
         )
 
-        print(
-            "Progress saved successfully."
-        )
+        print("Progress saved successfully.")
 
-    elapsed_seconds = (
-        perf_counter() - run_start
-    )
+    elapsed_seconds = perf_counter() - run_start
 
-    all_accepted = concatenate_frames(
-        accepted_frames
-    )
+    all_accepted = concatenate_frames(accepted_frames)
 
-    all_rejected = concatenate_frames(
-        rejected_frames
-    )
+    all_rejected = concatenate_frames(rejected_frames)
 
     summary_text = create_run_summary(
         root_files=root_files,

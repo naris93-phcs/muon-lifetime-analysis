@@ -40,10 +40,7 @@ def plot_publication_histogram(
         ACCEPTED_MUON_LIFETIME_US,
         linestyle="--",
         linewidth=2,
-        label=(
-            "Accepted muon lifetime "
-            f"≈ {ACCEPTED_MUON_LIFETIME_US:.3f} μs"
-        ),
+        label=("Accepted muon lifetime " f"≈ {ACCEPTED_MUON_LIFETIME_US:.3f} μs"),
     )
 
     ax.axvline(
