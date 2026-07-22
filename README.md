@@ -158,7 +158,25 @@ pip install -r requirements.txt
 
 ---
 
+## Data availability
+
+
+The experimental ROOT waveform files used in this analysis are not included in the repository due to their large size.
+
+The analysis pipeline is designed to operate on compatible scintillation-detector ROOT files containing:
+
+Time array
+Detector channel 1 waveform
+Detector channel 2 waveform
+
+The repository provides the complete analysis pipeline and software implementation, but not the original experimental dataset.
+
+Researchers with compatible detector data can adapt the configuration and use the pipeline for their own analyses.
+
+
 # Usage
+
+Place compatible ROOT files in the configured local data directory before running the analysis.
 
 Run the complete analysis pipeline:
 
