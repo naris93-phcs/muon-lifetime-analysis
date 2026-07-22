@@ -62,7 +62,7 @@ def load_early_candidates() -> pd.DataFrame:
 
     dataframe = pd.read_csv(INPUT_CSV)
 
-    dataframe = dataframe[dataframe["accepted"] == True].copy()  # noqa: E712
+    dataframe = dataframe[dataframe["accepted"].fillna(False)].copy()
 
     dataframe["decay_time_us"] = pd.to_numeric(
         dataframe["decay_time_us"],

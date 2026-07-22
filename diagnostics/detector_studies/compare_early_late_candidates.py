@@ -56,7 +56,7 @@ def load_candidates() -> pd.DataFrame:
     if missing_columns:
         raise ValueError("Missing required columns: " f"{sorted(missing_columns)}")
 
-    dataframe = dataframe[dataframe["accepted"] == True].copy()  # noqa: E712
+    dataframe = dataframe[dataframe["accepted"].fillna(False)].copy()
 
     dataframe["decay_time_us"] = pd.to_numeric(
         dataframe["decay_time_us"],

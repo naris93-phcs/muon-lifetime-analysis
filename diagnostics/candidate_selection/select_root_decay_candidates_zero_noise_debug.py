@@ -901,9 +901,9 @@ def main() -> None:
 
     candidate_results = all_results[all_results["decay_time_us"].notna()].copy()
 
-    accepted = candidate_results[candidate_results["accepted"] == True].copy()
-
-    rejected = candidate_results[candidate_results["accepted"] == False].copy()
+    accepted_mask = candidate_results["accepted"].fillna(False)
+    accepted = candidate_results[accepted_mask].copy()
+    rejected = candidate_results[~accepted_mask].copy()
 
     accepted = accepted.sort_values(
         "channel2_prominence_v",

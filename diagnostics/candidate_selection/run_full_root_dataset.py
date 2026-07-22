@@ -48,9 +48,9 @@ def split_candidate_results(
         empty = pd.DataFrame()
         return candidates, empty, empty
 
-    accepted = candidates[candidates["accepted"] == True].copy()
-
-    rejected = candidates[candidates["accepted"] == False].copy()
+    accepted_mask = candidates["accepted"].fillna(False)
+    accepted = candidates[accepted_mask].copy()
+    rejected = candidates[~accepted_mask].copy()
 
     return candidates, accepted, rejected
 
