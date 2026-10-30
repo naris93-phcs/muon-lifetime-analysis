@@ -447,6 +447,18 @@ def analyze_event(
             }
         ]
 
+    # Non-finite ADC samples can otherwise survive robust baseline estimation
+    # or make the coincidence veto silently treat an invalid window as empty.
+    if not all(np.all(np.isfinite(values)) for values in (time, channel1, channel2)):
+        return [
+            {
+                "file": file_name,
+                "event_index": event_index,
+                "accepted": False,
+                "rejection_reason": "nonfinite_samples",
+            }
+        ]
+
     time_us = time * 1e6
 
     (
